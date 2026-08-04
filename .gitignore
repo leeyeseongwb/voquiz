@@ -1,3 +1,15 @@
+# 환경변수 / 비밀키
+.env
+
+# 데이터베이스 & 업로드 파일
+data/*.db
+uploads/*
+!uploads/.gitkeep
+
+# 가상환경
+venv/
+__pycache__/
+*.pyc
+
+# OS
 .DS_Store
-node_modules/
-*.zip

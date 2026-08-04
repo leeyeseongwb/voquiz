@@ -1,0 +1,363 @@
+"""
+pdf_export.py
+-------------
+시험지 / 결과 리포트를 PDF 로 내보내는 모듈. (reportlab 사용)
+
+한글 표시를 위해 fonts/ 폴더의 나눔스퀘어라운드 폰트를 등록한다.
+문제 스키마는 ai_quiz.py 와 동일: type = "mc" | "written".
+"""
+
+import os
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from reportlab.pdfgen import canvas
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+from reportlab.lib.colors import black, grey, red, green, Color
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FONT_DIR = os.path.join(BASE_DIR, "fonts")
+LABELS = ["A", "B", "C", "D", "E"]
+
+# 사용자가 고를 수 있는 서체 (한글 렌더 가능한 것만)
+_FONTS_READY = {}
+
+
+def _register_fonts():
+    """서체 등록(한 번만). 반환: {style: (bold_font, regular_font)} 딕셔너리."""
+    global _FONTS_READY
+    if _FONTS_READY:
+        return _FONTS_READY
+    reg = {}
+    # 둥근고딕 (프로젝트 TTF)
+    try:
+        pdfmetrics.registerFont(TTFont("NanumB", os.path.join(FONT_DIR, "NanumSquareRoundB.ttf")))
+        pdfmetrics.registerFont(TTFont("NanumR", os.path.join(FONT_DIR, "NanumSquareRoundR.ttf")))
+        reg["round"] = ("NanumB", "NanumR")
+    except Exception:
+        reg["round"] = ("Helvetica-Bold", "Helvetica")
+    # 명조 / 고딕 (reportlab 내장 CJK CID 폰트) — 폰트명 정확히!
+    for style, name in (("myeongjo", "HYSMyeongJo-Medium"), ("gothic", "HYGothic-Medium")):
+        try:
+            pdfmetrics.registerFont(UnicodeCIDFont(name))
+            reg[style] = (name, name)
+        except Exception:
+            reg[style] = reg["round"]
+    _FONTS_READY = reg
+    return reg
+
+
+def _pick_fonts(style):
+    reg = _register_fonts()
+    return reg.get(style, reg["round"])
+
+
+def _wrap_w(c, text, font, size, maxw):
+    """폭(maxw) 기준 줄바꿈. 한글은 글자 단위, 영문은 되도록 단어 단위."""
+    text = str(text or "")
+    lines, cur, last_space = [], "", -1
+    for ch in text:
+        trial = cur + ch
+        if c.stringWidth(trial, font, size) > maxw and cur:
+            if last_space > 0 and ch != " ":
+                lines.append(cur[:last_space].rstrip())
+                cur = cur[last_space:].lstrip() + ch
+            else:
+                lines.append(cur)
+                cur = ch
+            last_space = -1
+        else:
+            cur = trial
+            if ch == " ":
+                last_space = len(cur) - 1
+    if cur:
+        lines.append(cur)
+    return lines or [""]
+
+
+def _watermark(c, w, h, text="VocaShot 무료"):
+    c.saveState()
+    c.setFillColor(Color(0.6, 0.6, 0.6, alpha=0.12))
+    c.setFont("Helvetica-Bold", 60)
+    c.translate(w / 2, h / 2)
+    c.rotate(35)
+    c.drawCentredString(0, 0, text)
+    c.restoreState()
+    _logo_watermark(c, w, h)
+
+
+_FADED_LOGO = None  # 우하단 워터마크용 반투명 로고 (한 번만 생성)
+
+
+def _get_faded_logo():
+    """VocaShot 로고를 반투명하게 만들어 임시 파일로 캐시(무료 PDF 우하단 워터마크)."""
+    global _FADED_LOGO
+    if _FADED_LOGO is not None:
+        return _FADED_LOGO
+    try:
+        from PIL import Image
+        import tempfile
+        src = os.path.join(BASE_DIR, "static", "VocaShot_Logo_Light.png")
+        im = Image.open(src).convert("RGBA")
+        alpha = im.split()[3].point(lambda a: int(a * 0.28))  # 28% 불투명도
+        im.putalpha(alpha)
+        out = os.path.join(tempfile.gettempdir(), "vocashot_wm_logo.png")
+        im.save(out)
+        _FADED_LOGO = (out, im.width / im.height)
+    except Exception:
+        _FADED_LOGO = ("", 0)
+    return _FADED_LOGO
+
+
+def _logo_watermark(c, w, h):
+    """우하단에 반투명 로고 스탬프."""
+    path, ratio = _get_faded_logo()
+    if not path or not ratio:
+        return
+    lw = 3.0 * cm
+    lh = lw / ratio
+    margin = 1.0 * cm
+    try:
+        c.drawImage(path, w - margin - lw, margin, width=lw, height=lh,
+                    mask="auto", preserveAspectRatio=True)
+    except Exception:
+        pass
+
+
+def create_quiz_pdf(quiz_list, filename, options=None, title_text=None):
+    """
+    옵션(options)에 따라 커스텀 시험지 PDF 생성.
+    options: {title, font(round/myeongjo/gothic), font_size, columns(1/2),
+              spacing, answer_key, header_fields, show_school, watermark}
+    """
+    o = dict(options or {})
+    title_text = o.get("title") or title_text or "Vocabulary Quiz"
+    style = o.get("font", "round")
+    fs = int(o.get("font_size", 10))
+    opt_fs = max(8, fs - 1)
+    cols = 2 if int(o.get("columns", 1)) == 2 else 1
+    gap = int(o.get("spacing", 8))
+    title_font, body = _pick_fonts(style)
+
+    c = canvas.Canvas(filename, pagesize=A4)
+    w, h = A4
+    ML, MR, MT, MB = 40, 40, 40, 56
+    col_gap = 20
+    col_w = (w - ML - MR - (col_gap * (cols - 1))) / cols
+
+    def col_x(ci):
+        return ML + ci * (col_w + col_gap)
+
+    # ---------- 헤더 ----------
+    def draw_header():
+        c.setFillColor(black)
+        c.setFont(title_font, 18)
+        c.drawCentredString(w / 2, h - MT, title_text)
+        top = h - MT - 20
+        if o.get("show_school", True):
+            c.setFont("Helvetica", 7)
+            c.setFillColor(grey)
+            c.drawCentredString(w / 2, top, "AI Generated by VocaShot")
+            c.setFillColor(black)
+            top -= 10
+        if o.get("header_fields", True):
+            c.setFont(body, 9)
+            c.line(ML, top - 4, w - MR, top - 4)
+            c.drawString(ML, top - 20, "이름: ______________    날짜: ______________    점수: ______")
+            top -= 30
+        return top - 8
+
+    kind = o.get("kind", "quiz")   # quiz(문제지) | answers(정답·해설지, 별도 파일)
+
+    if kind == "answers":
+        # ---------- 정답 & 해설 (별도 PDF) ----------
+        if o.get("watermark"):
+            _watermark(c, w, h)
+        c.setFont(title_font, 18)
+        c.setFillColor(black)
+        c.drawCentredString(w / 2, h - MT, f"{title_text} — 정답 & 해설")
+        y = h - MT - 30
+        for i, q in enumerate(quiz_list):
+            ans_label = ""
+            if q.get("type") != "written":
+                for idx, opt in enumerate(q.get("options", [])):
+                    if opt == q.get("answer"):
+                        ans_label = f"{LABELS[idx]}. "
+                        break
+            block = _wrap_w(c, f"   {q.get('explanation','')}", body, max(8, fs - 1), w - ML - MR)
+            need = (fs + 4) + 11 * len(block) + 8
+            if y - need < MB:
+                c.showPage()
+                if o.get("watermark"):
+                    _watermark(c, w, h)
+                y = h - MT
+            c.setFont(title_font, fs)
+            c.setFillColor(black)
+            c.drawString(ML, y, f"{i+1}. {ans_label}{q.get('answer','')}")
+            y -= fs + 3
+            c.setFont(body, max(8, fs - 1))
+            c.setFillColor(grey)
+            for ln in block:
+                c.drawString(ML, y, ln)
+                y -= 11
+            y -= 8
+        c.save()
+        return
+
+    # ---------- 문제지 (정답 없음 — 정답은 별도 PDF) ----------
+    if o.get("watermark"):
+        _watermark(c, w, h)
+    y = draw_header()
+    ci = 0
+
+    def newcol_or_page(need):
+        nonlocal y, ci
+        if y - need < MB:
+            if ci < cols - 1:
+                ci += 1
+                y = h - MT - 4
+            else:
+                c.showPage()
+                if o.get("watermark"):
+                    _watermark(c, w, h)
+                ci = 0
+                y = h - MT - 10
+
+    for i, q in enumerate(quiz_list):
+        x = col_x(ci)
+        qlines = _wrap_w(c, f"{i+1}. {q.get('question','')}", body, fs, col_w)
+        opts = q.get("options", []) if q.get("type") != "written" else []
+        need = (fs + 4) * len(qlines) + (opt_fs + 3) * len(opts) + (24 if q.get("type") == "written" else 0) + gap
+        newcol_or_page(need)
+        x = col_x(ci)
+        c.setFillColor(black)
+        c.setFont(body, fs)
+        for ln in qlines:
+            c.drawString(x, y, ln)
+            y -= fs + 4
+        if q.get("type") == "written":
+            c.line(x + 12, y - 4, x + col_w, y - 4)
+            y -= 20
+        else:
+            c.setFont(body, opt_fs)
+            for idx, opt in enumerate(opts):
+                for ln in _wrap_w(c, f"{LABELS[idx]}. {opt}", body, opt_fs, col_w - 14):
+                    c.drawString(x + 14, y, ln)
+                    y -= opt_fs + 3
+        y -= gap
+    c.save()
+
+
+def create_report_pdf(data, filename):
+    """data = {score, correct, total, results:[{idx, question, user_ans, correct_ans, correct, feedback}]}"""
+    c = canvas.Canvas(filename, pagesize=A4)
+    w, h = A4
+    title, body = _pick_fonts("round")
+
+    c.setFont(title, 22)
+    c.drawCentredString(w / 2, h - 50, "학습 리포트")
+    c.setFont(title, 30)
+    c.drawCentredString(w / 2, h - 100, f"{data.get('score', 0)}%")
+    c.setFont(body, 12)
+    c.drawCentredString(w / 2, h - 130, f"정답 {data.get('correct', 0)} / {data.get('total', 0)}")
+    c.line(50, h - 150, w - 50, h - 150)
+
+    y = h - 180
+    c.setFont(title, 14)
+    c.drawString(50, y, "문항별 리뷰")
+    y -= 26
+
+    for item in data.get("results", []):
+        if not item:
+            continue
+        if y < 90:
+            c.showPage()
+            y = h - 50
+        c.setFont(title, 10)
+        c.setFillColor(black)
+        for ln in _wrap_w(c, f"Q{item['idx']}. {item['question']}", title, 10, w - 100):
+            c.drawString(50, y, ln)
+            y -= 14
+        c.setFont(body, 10)
+        c.setFillColor(green if item.get("correct") else red)
+        for ln in _wrap_w(c, f"내 답: {item.get('user_ans','')}", body, 10, w - 110):
+            c.drawString(60, y, ln)
+            y -= 12
+        c.setFillColor(green)
+        for ln in _wrap_w(c, f"정답: {item.get('correct_ans','')}", body, 10, w - 110):
+            c.drawString(60, y, ln)
+            y -= 12
+        c.setFillColor(grey)
+        c.setFont(body, 9)
+        for ln in _wrap_w(c, f"해설: {item.get('feedback','')}", body, 9, w - 110):
+            c.drawString(60, y, ln)
+            y -= 11
+        y -= 12
+    c.save()
+
+
+def create_progress_pdf(data, filename):
+    """전체 학습 진도 리포트 PDF (공유/다운로드용).
+    data = {name, avg, best, attempts, week, mastery{mastered,learning,weak}, exams[], weak_words[]}"""
+    c = canvas.Canvas(filename, pagesize=A4)
+    w, h = A4
+    title, body = _pick_fonts("round")
+    ML = 46
+
+    c.setFont(title, 22)
+    c.setFillColor(black)
+    c.drawCentredString(w / 2, h - 52, "학습 진도 리포트")
+    c.setFont(body, 11)
+    c.setFillColor(grey)
+    c.drawCentredString(w / 2, h - 72, f"{data.get('name','학습자')} · VocaShot")
+    c.setFillColor(black)
+    c.line(ML, h - 88, w - ML, h - 88)
+
+    # KPI 요약
+    y = h - 120
+    kpis = [("평균 점수", f"{data.get('avg',0)}%"), ("최고 점수", f"{data.get('best',0)}%"),
+            ("총 응시", f"{data.get('attempts',0)}회"), ("이번 주", f"{data.get('week',0)}회")]
+    colw = (w - 2 * ML) / len(kpis)
+    for i, (label, val) in enumerate(kpis):
+        cx = ML + colw * i + colw / 2
+        c.setFont(title, 20); c.setFillColor(black); c.drawCentredString(cx, y, val)
+        c.setFont(body, 9); c.setFillColor(grey); c.drawCentredString(cx, y - 16, label)
+    y -= 50
+
+    m = data.get("mastery", {})
+    c.setFont(title, 13); c.setFillColor(black); c.drawString(ML, y, "단어 숙련도")
+    y -= 20
+    c.setFont(body, 10); c.setFillColor(grey)
+    c.drawString(ML, y, f"정복 {m.get('mastered',0)}   ·   학습중 {m.get('learning',0)}   ·   취약 {m.get('weak',0)}")
+    y -= 30
+
+    exams = data.get("exams", [])
+    if exams:
+        c.setFont(title, 13); c.setFillColor(black); c.drawString(ML, y, "시험지별 성적")
+        y -= 20
+        c.setFont(body, 10)
+        for e in exams[:12]:
+            if y < 80:
+                c.showPage(); y = h - 60
+            c.setFillColor(black)
+            c.drawString(ML, y, str(e.get("name", ""))[:40])
+            c.drawRightString(w - ML, y, f"최고 {e.get('best',0)}% · 평균 {e.get('avg',0)}% · {e.get('attempts',0)}회")
+            y -= 16
+        y -= 14
+
+    weak = data.get("weak_words", [])
+    if weak:
+        if y < 120:
+            c.showPage(); y = h - 60
+        c.setFont(title, 13); c.setFillColor(black); c.drawString(ML, y, "취약 단어")
+        y -= 20
+        c.setFont(body, 10)
+        for wd in weak[:20]:
+            if y < 70:
+                c.showPage(); y = h - 60
+            c.setFillColor(black); c.drawString(ML, y, str(wd.get("word", "")))
+            c.setFillColor(grey); c.drawString(ML + 150, y, str(wd.get("meaning", ""))[:34])
+            c.setFillColor(red); c.drawRightString(w - ML, y, f"{wd.get('accuracy',0)}%")
+            y -= 15
+    c.save()
