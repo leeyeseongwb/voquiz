@@ -325,13 +325,6 @@ def create_progress_pdf(data, filename):
         c.setFont(body, 9); c.setFillColor(grey); c.drawCentredString(cx, y - 16, label)
     y -= 50
 
-    m = data.get("mastery", {})
-    c.setFont(title, 13); c.setFillColor(black); c.drawString(ML, y, "단어 숙련도")
-    y -= 20
-    c.setFont(body, 10); c.setFillColor(grey)
-    c.drawString(ML, y, f"정복 {m.get('mastered',0)}   ·   학습중 {m.get('learning',0)}   ·   취약 {m.get('weak',0)}")
-    y -= 30
-
     exams = data.get("exams", [])
     if exams:
         c.setFont(title, 13); c.setFillColor(black); c.drawString(ML, y, "시험지별 성적")

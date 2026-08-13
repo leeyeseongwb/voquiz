@@ -34,9 +34,8 @@ async function api(path, { method = "GET", body = null, isForm = false } = {}) {
 // 뷰 전환
 // ============================================================
 function showView(id) {
-    ["view-dashboard", "view-upload", "view-wordbook", "view-exam-create", "view-planner", "view-take", "view-report",
-     "view-review", "view-flashcards", "view-game", "view-cover", "view-dictation", "view-speed",
-     "view-class-teacher", "view-class-student"]
+    ["view-dashboard", "view-upload", "view-wordbook", "view-exam-create", "view-take", "view-report",
+     "view-flashcards", "view-game", "view-cover", "view-dictation", "view-speed"]
         .forEach(v => document.getElementById(v).classList.add("hidden"));
     document.getElementById(id).classList.remove("hidden");
     // 게임 화면을 벗어나면 타이머 정지
@@ -50,7 +49,7 @@ function goDashboard() {
     navTo("dashboard");
 }
 
-// 사이드바 내비게이션: dashboard(개요) | wordbooks | exams | calendar | classes
+// 사이드바 내비게이션: dashboard(개요) | wordbooks | exams
 function navTo(section) {
     stopTimer();
     document.querySelectorAll(".side-link[data-nav]").forEach(l =>
@@ -58,7 +57,7 @@ function navTo(section) {
     showView("view-dashboard");
     const isDash = section === "dashboard";
     document.querySelector(".dash-stats").classList.toggle("hidden", !isDash);
-    ["wordbooks", "exams", "calendar", "classes"].forEach(t =>
+    ["wordbooks", "exams"].forEach(t =>
         document.getElementById("tab-" + t).classList.toggle("hidden", isDash || t !== section));
     if (isDash) loadStats();
     else switchTab(section);
@@ -80,39 +79,6 @@ function showAuthPane(name) {
     hideAuthError();
 }
 
-// 공유 링크(?take=코드)로 접속한 학생 응시 게이트 준비
-let _takeCode = null;
-async function initTakeGate() {
-    const code = new URLSearchParams(location.search).get("take");
-    if (!code) return false;
-    _takeCode = code.toUpperCase();
-    try {
-        const info = await api(`/api/public/class/${_takeCode}`);
-        document.getElementById("take-class-name").textContent = `${info.class_name} 과제`;
-    } catch (e) { document.getElementById("take-class-name").textContent = "과제"; }
-    document.getElementById("view-auth").classList.remove("hidden");
-    showAuthPane("take");
-    return true;
-}
-
-// 학생: 이름 + 학생 ID로 응시 시작 (로그인 불필요)
-async function doTakeEnter() {
-    const name = document.getElementById("take-name").value.trim();
-    const sid = document.getElementById("take-sid").value.trim();
-    if (!name) return showAuthError("이름을 입력하세요.");
-    if (!sid) return showAuthError("선생님이 준 학생 ID를 입력하세요.");
-    try {
-        const r = await api("/api/public/class/enter", { method: "POST", body: { code: _takeCode, sid, name } });
-        await enterApp();
-        openStudentClass(r.class_id);   // 배정된 과제로 바로 이동
-    } catch (e) { showAuthError(e.message); }
-}
-
-function onSignupTierChange() {
-    const tier = document.querySelector('input[name="signupTier"]:checked')?.value;
-    document.getElementById("teacher-note").classList.toggle("hidden", tier !== "teacher");
-}
-
 function showAuthError(msg) {
     const el = document.getElementById("auth-error");
     el.textContent = msg; el.classList.remove("hidden");
@@ -124,9 +90,8 @@ async function doSignup() {
     const password = document.getElementById("signup-password").value;
     if (!email || !password) return showAuthError("이메일과 비밀번호를 입력하세요.");
     if (!checkPwRules()) return showAuthError("비밀번호 요구사항을 모두 충족해야 합니다. (6~15자, 영문+숫자+특수문자)");
-    const tier = document.querySelector('input[name="signupTier"]:checked')?.value || "basic";
     try {
-        const r = await api("/api/signup", { method: "POST", body: { email, password, tier } });
+        const r = await api("/api/signup", { method: "POST", body: { email, password } });
         document.getElementById("verify-target").textContent = email;
         window._pendingEmail = email;
         showAuthPane("verify");
@@ -186,7 +151,6 @@ async function doLogin() {
 async function doLogout() {
     await api("/api/logout", { method: "POST" });
     CURRENT_USER = null;
-    if (_notifTimer) { clearInterval(_notifTimer); _notifTimer = null; }
     document.getElementById("view-app").classList.add("hidden");
     document.getElementById("view-auth").classList.remove("hidden");
 }
@@ -195,40 +159,21 @@ async function enterApp() {
     const me = await api("/api/me");
     CURRENT_USER = me;
     renderUserChip();
-    applyRoleNav();
     document.getElementById("view-auth").classList.add("hidden");
     document.getElementById("view-app").classList.remove("hidden");
     goDashboard();
-    // 알림 로드 + 주기적 폴링(30초)
-    loadNotifications();
-    if (_notifTimer) clearInterval(_notifTimer);
-    _notifTimer = setInterval(loadNotifications, 30000);
 }
 
-// 상단바 프로필 칩 렌더링 (닉네임 / 아바타 / 등급)
+// 상단바 프로필 칩 렌더링 (닉네임 / 아바타)
 function renderUserChip() {
     const u = CURRENT_USER;
     document.getElementById("topbar-nick").textContent = u.nickname || u.email;
     const av = document.getElementById("topbar-avatar");
     av.innerHTML = u.avatar ? `<img src="${u.avatar}" alt="">` : "🙂";
-    const badge = document.getElementById("topbar-tier");
-    const labels = { basic: "기본", premium: "프리미엄", teacher: "선생님 Basic", teacher_pro: "선생님 Pro" };
-    badge.textContent = labels[u.tier] || "기본";
-    badge.className = "tier-badge " + (u.tier || "basic");
-    renderSideMeta();
-}
-
-// 역할별 내비게이션: 선생님은 플래너·반 메뉴를 숨기고 반은 대시보드에 통합
-function applyRoleNav() {
-    const isTeacher = !!CURRENT_USER?.limits?.can_create_class;
-    document.querySelectorAll('.side-link[data-nav="calendar"], .side-link[data-nav="classes"]')
-        .forEach(l => l.classList.toggle("hidden", isTeacher));
 }
 
 // 페이지 로드 시 세션 확인
 async function init() {
-    // 공유 링크(?take=코드)로 접속하면 로그인 대신 학생 응시 게이트 표시
-    if (await initTakeGate()) return;
     try { await enterApp(); }
     catch (e) {
         document.getElementById("view-auth").classList.remove("hidden");
@@ -284,14 +229,6 @@ function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 async function loadStats() {
     // 인사말 (시간대·방문 간격 등 시나리오별)
     document.getElementById("dash-greeting").innerHTML = pickGreeting();
-    const isTeacher = !!CURRENT_USER?.limits?.can_create_class;
-    document.getElementById("dash-personal").classList.toggle("hidden", isTeacher);
-    document.getElementById("dash-teacher").classList.toggle("hidden", !isTeacher);
-    // 선생님은 개인용 위젯(오늘 할 일·공유)을 숨기고 학생 관리 대시보드만 표시
-    document.querySelector(".share-card")?.classList.toggle("hidden", isTeacher);
-    document.querySelector(".dash-stats .today-card")?.classList.toggle("hidden", isTeacher);
-
-    if (isTeacher) { loadTeacherDash(); return; }
 
     try {
         const s = await api("/api/stats");
@@ -303,96 +240,12 @@ async function loadStats() {
         document.getElementById("kpi-best").innerHTML = `${s.best_score}<span class="unit">%</span>`;
         renderExamScores(s.exam_scores || []);
         renderRecent(s.recent);
-        renderMastery(s.mastery);
     } catch (e) {}
-    loadToday();       // 통계 위 '오늘 할 일'
-    loadAnalysis();    // 학습중/취약 단어 목록
     loadShare();       // 공유 카드 상태
 }
 
-// 선생님 대시보드: 최근 학생 활동(위) → 내 반 → 학생 성적표
-async function loadTeacherDash() {
-    const box = document.getElementById("dash-teacher");
-    box.innerHTML = `<div class="muted" style="padding:14px">불러오는 중…</div>`;
-    try {
-        const t = await api("/api/teacher/overview");
-        const scoreCls = s => s >= 80 ? "hi" : (s >= 50 ? "mid" : "lo");
-        // 1) 최근 학생 활동 (가로 스크롤 카드)
-        const recent = t.recent.length ? t.recent.map(r => `
-            <div class="activity-card">
-                <div class="ac-top"><span class="ac-name">${esc(r.nickname || r.email)}</span>
-                    <span class="ri-score ${scoreCls(r.score)}">${r.score}%</span></div>
-                <div class="ac-exam">${esc(r.exam_name)}</div>
-                <div class="ac-meta">${esc(r.class_name || "")} · ${fmtDate(r.created_at)}</div>
-            </div>`).join("") : `<div class="recent-empty">아직 학생 응시 기록이 없어요.</div>`;
-        // 2) 내 반 (가로 카드)
-        const classCards = t.classes.length ? t.classes.map(c => `
-            <div class="class-tile" onclick="openTeacherClass(${c.id})">
-                <div class="ct-title">${esc(c.name)} <span class="stu-arrow">›</span></div>
-                <div class="ic-meta">
-                    <span class="badge">학생 ${c.student_count}명</span>
-                    <span class="badge gray">과제 ${c.assignment_count}개</span>
-                    ${c.avg_score != null ? `<span class="badge green">평균 ${c.avg_score}%</span>` : ""}
-                </div>
-            </div>`).join("") : `<div class="empty-state">아직 만든 반이 없어요.<br>“＋ 반 만들기”로 시작하세요.</div>`;
-        // 3) 학생 성적 — 반별 탭
-        _teacherData = t;
-        _gradeTab = t.classes.length ? (t.classes.some(c => c.id === _gradeTab) ? _gradeTab : t.classes[0].id) : null;
-        const gradeTabs = t.classes.map(c =>
-            `<button class="grade-tab ${c.id === _gradeTab ? "active" : ""}" data-cid="${c.id}" onclick="selectGradeTab(${c.id})">${esc(c.name)}</button>`).join("");
-        const maxClasses = CURRENT_USER?.limits?.max_classes || 5;
-        const atCap = t.totals.classes >= maxClasses;
-        box.innerHTML = `
-            <div class="card">
-                <div class="chart-head"><h3>📣 최근 학생 활동</h3></div>
-                <div class="activity-row">${recent}</div>
-            </div>
-            <div class="card" style="margin-top:16px">
-                <div class="chart-head"><h3>🏫 내 반 <span class="hint-text">(반 ${t.totals.classes} / ${maxClasses} · 클릭하면 학생·과제 관리)</span></h3>
-                    <button class="btn-accent btn-sm" onclick="createClass()" ${atCap ? "disabled title='반 최대 개수에 도달했어요'" : ""}>＋ 반 만들기</button></div>
-                <div class="class-row">${classCards}</div>
-            </div>
-            <div class="card" style="margin-top:16px">
-                <div class="chart-head"><h3>📊 학생 성적 <span class="hint-text">(학생을 클릭하면 상세)</span></h3>
-                    <button class="btn-mini" onclick="downloadStudentsXlsx()" ${(t.students || []).length ? "" : "disabled"}>⬇ 엑셀(xlsx) 다운로드</button></div>
-                <div class="grade-tabs">${gradeTabs}</div>
-                <div class="dash-table-wrap" id="grade-table"></div>
-            </div>`;
-        renderGradeTable();
-    } catch (e) { box.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
-}
 
-let _teacherData = null, _gradeTab = null;
-function selectGradeTab(cid) {
-    _gradeTab = cid;
-    document.querySelectorAll(".grade-tabs .grade-tab").forEach(b =>
-        b.classList.toggle("active", Number(b.dataset.cid) === cid));
-    renderGradeTable();
-}
-// 선택된 반의 학생 성적 표 (반 컬럼 없음)
-function renderGradeTable() {
-    const el = document.getElementById("grade-table");
-    if (!el || !_teacherData) return;
-    const scoreCls = s => s >= 80 ? "hi" : (s >= 50 ? "mid" : "lo");
-    const rows = (_teacherData.students || []).filter(s => s.class_id === _gradeTab);
-    const body = rows.length ? rows.map(s => `
-        <tr onclick="openStudentDetail(${s.class_id}, ${s.student_id})" style="cursor:pointer">
-            <td class="stu-name stu-link">${esc(s.name)} <span class="stu-arrow">›</span></td>
-            <td><span class="rc-id">${esc(s.sid || "-")}</span></td>
-            <td>${s.recent_exam ? esc(s.recent_exam) : `<span class="cell-none">기록 없음</span>`}</td>
-            <td>${s.recent_score != null ? `<span class="cell-score ${scoreCls(s.recent_score)}">${s.recent_score}%</span>` : `<span class="cell-none">–</span>`}</td>
-            <td>${s.avg != null ? `<span class="cell-score ${scoreCls(s.avg)}">${s.avg}%</span>` : `<span class="cell-none">–</span>`}</td>
-        </tr>`).join("") : `<tr><td colspan="5"><div class="empty-state">이 반에는 아직 학생이 없어요.</div></td></tr>`;
-    el.innerHTML = `<table class="dash-table stud-table">
-        <thead><tr><th>학생</th><th>학생 ID</th><th>최근 시험</th><th>최근 점수</th><th>평균</th></tr></thead>
-        <tbody>${body}</tbody></table>`;
-}
 
-// 학생 통계 xlsx 다운로드
-async function downloadStudentsXlsx() {
-    try { await downloadPdf("/api/teacher/students.xlsx", "VocaShot_학생통계.xlsx", null, "GET"); }
-    catch (e) { toastErr(e.message); }
-}
 
 // 시험지별 성적 (막대) — 점수 추이 대체 위젯
 function renderExamScores(list) {
@@ -413,84 +266,14 @@ function renderExamScores(list) {
     }).join("");
 }
 
-function renderMastery(dist) {
-    const box = document.getElementById("mastery-box");
-    if (!dist) { box.innerHTML = ""; return; }
-    const total = dist.mastered + dist.learning + dist.weak;
-    if (total === 0) {
-        box.innerHTML = `<div class="mastery-empty">아직 학습한 단어가 없어요.<br>시험을 보면 숙련도가 쌓입니다.</div>`;
-        return;
-    }
-    const pct = n => (n / total * 100).toFixed(1);
-    const seg = (n, cls) => n ? `<div class="mastery-seg ${cls}" style="width:${pct(n)}%">${n}</div>` : "";
-    box.innerHTML = `
-        <div class="mastery-bar">
-            ${seg(dist.mastered, "mseg-mastered")}
-            ${seg(dist.learning, "mseg-learning")}
-            ${seg(dist.weak, "mseg-weak")}
-        </div>
-        <div class="mastery-legend">
-            <span><i class="dot-m" style="background:var(--green)"></i> 정복 ${dist.mastered}</span>
-            <span><i class="dot-m" style="background:var(--primary)"></i> 학습중 ${dist.learning}</span>
-            <span><i class="dot-m" style="background:var(--red)"></i> 취약 ${dist.weak}</span>
-        </div>`;
-}
 
 let _weakAll = [];
-async function loadAnalysis() {
-    try {
-        const a = await api("/api/analysis");
-        _weakAll = a.weak_words || [];
-        document.getElementById("weak-more-btn").classList.toggle("hidden", _weakAll.length <= 6);
-        // 취약 단어 (카드에는 상위 일부만)
-        const box = document.getElementById("weak-list");
-        box.innerHTML = a.weak_words.length ? a.weak_words.slice(0, 8).map(w => {
-            const cls = w.accuracy < 50 ? "lo" : "mid";
-            return `<div class="weak-item">
-                <div style="min-width:0">
-                    <div class="weak-word">${esc(w.word)}</div>
-                    <div class="weak-mean">${esc(w.meaning || "")}</div>
-                </div>
-                <span class="weak-acc ${cls}">${w.accuracy}% · 오답 ${w.wrong}</span>
-            </div>`;
-        }).join("") : `<div class="mastery-empty">취약 단어가 없어요 👍</div>`;
 
-        // 학습 중인 단어 (숙련도 카드 하단 미니 리스트)
-        const lbox = document.getElementById("learning-list");
-        if (lbox) lbox.innerHTML = (a.learning_words && a.learning_words.length)
-            ? a.learning_words.map(w => `
-                <div class="mini-word-item">
-                    <span class="mw-word">${esc(w.word)}</span>
-                    <span class="mw-mean">${esc(w.meaning || "")}</span>
-                    <span class="mw-streak" title="연속 정답">${"●".repeat(Math.min(w.streak, 2))}${"○".repeat(Math.max(0, 2 - w.streak))}</span>
-                </div>`).join("")
-            : `<div class="mastery-empty" style="padding:14px 0">학습 중인 단어가 아직 없어요.</div>`;
-    } catch (e) {}
-}
-
-// 취약 단어 전체 보기 (더보기 → 팝업)
-function openWeakModal() {
-    const list = document.getElementById("weak-modal-list");
-    list.innerHTML = _weakAll.length ? _weakAll.map(w => {
-        const cls = w.accuracy < 50 ? "lo" : "mid";
-        return `<div class="weak-item">
-            <div style="min-width:0"><div class="weak-word">${esc(w.word)}</div>
-                <div class="weak-mean">${esc(w.meaning || "")}</div></div>
-            <span class="weak-acc ${cls}">${w.accuracy}% · 오답 ${w.wrong}</span>
-        </div>`;
-    }).join("") : `<div class="mastery-empty">취약 단어가 없어요 👍</div>`;
-    document.getElementById("weak-modal").classList.remove("hidden");
-}
-function closeWeakModal(e) {
-    if (e && e.target !== e.currentTarget) return;
-    document.getElementById("weak-modal").classList.add("hidden");
-}
 
 // ============================================================
 // 학습 기능 — 플래시카드 & 단어 맞추기 게임
 // ============================================================
 function backToWordbook() {
-    if (fcState.returnTo === "planner") { fcState.returnTo = null; navTo("calendar"); return; }
     if (currentWordbook) openWordbook(currentWordbook.id);
     else goDashboard();
 }
@@ -507,9 +290,6 @@ function learnWords() {
 // ---- 학습 설정 모달 ----
 let studyState = { method: "flashcard", game: "match" };
 
-// 크레딧을 소모하는(프리미엄) 모드
-const PREMIUM_MODES = new Set(["cover", "dictation", "speed", "spelling", "match_def", "sentence_fill"]);
-
 function openStudySetup(pool) {
     const custom = Array.isArray(pool) && pool.length;
     if (!custom && !currentWordbook) return;
@@ -525,27 +305,10 @@ function openStudySetup(pool) {
     const hasEx = words.some(w => w.example && w.example.trim());
     document.getElementById("gt-def").classList.toggle("hidden", !hasDef);
     document.getElementById("gt-sentence").classList.toggle("hidden", !hasEx);
-    // 프리미엄 모드에 크레딧 배지 표시
-    document.querySelectorAll("#study-modal .method-card").forEach(c => {
-        const mode = c.dataset.method || c.dataset.game;
-        c.querySelector(".pm-badge")?.remove();
-        if (PREMIUM_MODES.has(mode)) c.insertAdjacentHTML("beforeend", `<span class="pm-badge">1크레딧</span>`);
-    });
     updateStudyCount();
     document.getElementById("study-modal").classList.remove("hidden");
 }
 
-// 프리미엄 학습 모드 시작 전 크레딧 차감 (기본 모드는 통과)
-async function chargeStudy(mode) {
-    try {
-        await api("/api/study/charge", { method: "POST", body: { mode } });
-        return true;
-    } catch (e) {
-        toastErr(e.message);
-        if (e.message.includes("크레딧")) openProfile();
-        return false;
-    }
-}
 function closeStudySetup(e) {
     if (e && e.target !== e.currentTarget) return;
     document.getElementById("study-modal").classList.add("hidden");
@@ -560,11 +323,6 @@ function studySelectAll() {
     updateStudyCount();
 }
 
-// 취약 단어만 학습/복습 (단어 학습과 동일한 기능)
-function startWeakStudy() {
-    if (!_weakAll || !_weakAll.length) return toastErr("취약 단어가 없어요 👍");
-    openStudySetup(_weakAll.map(w => ({ word: w.word, meaning: w.meaning, wordbook_id: w.wordbook_id })));
-}
 function selectMethod(el) {
     el.parentElement.querySelectorAll(".method-card").forEach(c => c.classList.remove("selected"));
     el.classList.add("selected");
@@ -580,9 +338,6 @@ async function startStudy() {
     const words = learnWords();
     if (!words.length) return toastErr("학습할 단어가 없어요.");
     const m = studyState.method;
-    const mode = m === "game" ? studyState.game : m;
-    // 프리미엄 모드면 크레딧 차감 (실패 시 중단)
-    if (PREMIUM_MODES.has(mode) && !(await chargeStudy(mode))) return;
     closeStudySetup();
     if (m === "flashcard") startFlashcardsWith(words);
     else if (m === "cover") startCover(words);
@@ -625,9 +380,7 @@ function flipCard() {
     // 카드를 뒤집으면 예문 쓰기 영역 표시
     document.getElementById("fc-practice").classList.toggle("hidden", !fcState.flipped);
     if (fcState.flipped) {
-        // AI 첨삭은 크레딧 기반 — 모든 등급에서 사용 가능(크레딧 소진 시 서버가 안내)
         document.getElementById("fc-practice-actions").classList.remove("hidden");
-        document.getElementById("fc-locked").classList.add("hidden");
     }
 }
 
@@ -648,7 +401,6 @@ async function checkSentence() {
         fb.classList.remove("hidden");
     } catch (e) {
         toast(e.message, "error");
-        if (e.message.includes("크레딧") || e.message.includes("프리미엄")) openProfile();
     } finally { btn.textContent = old; btn.disabled = false; }
 }
 function fcMove(dir) {
@@ -832,10 +584,6 @@ function dictSubmit() {
     fb.className = "dict-feedback " + (ok ? "ok" : "no");
     fb.innerHTML = ok ? "✅ 정답!" : `❌ 정답: <b>${esc(w.word)}</b>`;
     fb.classList.remove("hidden");
-    // SRS 숙련도 반영
-    const wbId = w.wordbook_id || currentWordbook?.id;
-    if (wbId) api("/api/review/grade", { method: "POST", body: { items: [
-        { wordbook_id: wbId, word: w.word, meaning: w.meaning, correct: ok }] } }).catch(() => {});
     document.getElementById("dict-input").disabled = true;
     setTimeout(dictNext, 900);
 }
@@ -918,9 +666,6 @@ function speedPick(btn, choice) {
         if (b.textContent === q.answer) b.classList.add("correct");
         else if (b === btn) b.classList.add("wrong");
     });
-    const wbId = q.wordbook_id || currentWordbook?.id;
-    if (wbId) api("/api/review/grade", { method: "POST", body: { items: [
-        { wordbook_id: wbId, word: q.word, meaning: q.meaning, correct: ok }] } }).catch(() => {});
     setTimeout(() => {
         if (speedState.idx >= speedState.qs.length - 1) {
             clearInterval(speedState.timer);
@@ -952,76 +697,6 @@ function _renderSpellingHint() {
     // 첫 글자와 마지막 글자만 노출, 나머지는 _
     const masked = word.split("").map((ch, i) => (i === 0 || i === word.length - 1 || ch === " ") ? ch : "_").join(" ");
     document.getElementById("dict-hint").textContent = `빈칸을 채우세요: ${masked}`;
-}
-
-// ============================================================
-// SRS 복습 세션
-// ============================================================
-let reviewState = { questions: [], answers: {} };
-
-async function startReview() {
-    try {
-        const r = await api("/api/review/due?count=15");
-        if (!r.questions.length) { toastErr("복습할 단어가 없어요!"); return; }
-        reviewState = { questions: r.questions, answers: {} };
-        document.getElementById("review-result").classList.add("hidden");
-        document.getElementById("review-questions").parentElement.classList.remove("hidden");
-        document.getElementById("review-progress").textContent = `0 / ${r.questions.length}`;
-        renderReviewQuestions();
-        showView("view-review");
-    } catch (e) { toastErr(e.message); }
-}
-
-function renderReviewQuestions() {
-    const box = document.getElementById("review-questions");
-    const labels = ["A", "B", "C", "D"];
-    box.innerHTML = reviewState.questions.map((q, i) => {
-        const opts = q.options.map((o, idx) => `
-            <label class="q-opt" onclick="chooseOpt(this)">
-                <input type="radio" name="rv${i}" value="${esc(o)}" onchange="setReviewAnswer(${i}, this.value)">
-                <span class="opt-label">${labels[idx]}.</span> ${esc(o)}
-            </label>`).join("");
-        return `<div class="q-item">
-            <div class="q-text"><span class="q-num">${i + 1}.</span> ${esc(q.question)}</div>
-            <div class="q-options">${opts}</div>
-        </div>`;
-    }).join("");
-}
-
-function setReviewAnswer(idx, val) {
-    reviewState.answers[idx] = val;
-    const answered = Object.keys(reviewState.answers).length;
-    document.getElementById("review-progress").textContent = `${answered} / ${reviewState.questions.length}`;
-}
-
-async function submitReview() {
-    const items = reviewState.questions.map((q, i) => ({
-        wordbook_id: q.wordbook_id,
-        word: q.word,
-        meaning: q.meaning,
-        correct: reviewState.answers[i] === q.answer,
-    }));
-    try {
-        const r = await api("/api/review/grade", { method: "POST", body: { items } });
-        document.getElementById("review-questions").parentElement.classList.add("hidden");
-        const res = document.getElementById("review-result");
-        res.classList.remove("hidden");
-        const circle = document.getElementById("review-score");
-        circle.style.setProperty("--pct", r.score + "%");
-        circle.setAttribute("data-score", r.score + "%");
-        circle.textContent = "";
-        document.getElementById("review-correct").textContent = r.correct;
-        document.getElementById("review-total").textContent = r.total;
-        document.getElementById("review-detail").innerHTML = reviewState.questions.map((q, i) => {
-            const ok = reviewState.answers[i] === q.answer;
-            return `<div class="rep-q ${ok ? "" : "wrong"}">
-                <div class="rq-title">${esc(q.word)}</div>
-                <div class="rq-you ${ok ? "ok" : "no"}">내 답: ${esc(reviewState.answers[i] || "(미응답)")} ${ok ? "✅" : "❌"}</div>
-                ${ok ? "" : `<div class="rq-ans">정답: ${esc(q.answer)}</div>`}
-            </div>`;
-        }).join("");
-        window.scrollTo(0, 0);
-    } catch (e) { toastErr(e.message); }
 }
 
 // 점수 추이 — 시험지별 탭 (전체 + 각 시험지)
@@ -1119,531 +794,24 @@ function switchTab(name) {
     document.querySelectorAll(".side-link[data-nav]").forEach(l =>
         l.classList.toggle("active", l.dataset.nav === name));
     document.querySelector(".dash-stats")?.classList.add("hidden");
-    ["wordbooks", "exams", "calendar", "classes"].forEach(t =>
+    ["wordbooks", "exams"].forEach(t =>
         document.getElementById("tab-" + t).classList.toggle("hidden", t !== name));
     if (name === "wordbooks") loadWordbooks();
     if (name === "exams") loadExams();
-    if (name === "classes") loadClasses();
-    if (name === "calendar") { loadToday(); loadCalendar(); loadPlanner(); }
 }
 
-// 학습 리포트 (사이드바 하단 진입)
-async function loadReport() {
-    const box = document.getElementById("report-body");
-    box.innerHTML = `<div class="muted" style="padding:20px">불러오는 중…</div>`;
-    try {
-        const s = await api("/api/stats");
-        const a = await api("/api/analysis");
-        const m = s.mastery || { mastered: 0, learning: 0, weak: 0 };
-        const kpi = (n, l) => `<div class="kpi"><div class="kpi-num">${n}</div><div class="kpi-label">${l}</div></div>`;
-        const scoreBars = (s.exam_scores || []).length ? (s.exam_scores).map(e => {
-            const cls = e.best >= 80 ? "hi" : (e.best >= 50 ? "mid" : "lo");
-            return `<div class="es-row" onclick="openExam(${e.exam_id})">
-                <div class="es-top"><span class="es-name">${esc(e.name)}</span><span class="es-best ${cls}">${e.best}%</span></div>
-                <div class="es-track"><div class="es-bar ${cls}" style="width:${e.best}%"></div></div>
-                <div class="es-sub">평균 ${e.avg}% · ${e.attempts}회</div></div>`;
-        }).join("") : `<div class="trend-empty">아직 응시한 시험지가 없어요.</div>`;
-        const wordList = (arr, empty) => arr.length ? arr.map(w => `
-            <div class="weak-item"><div style="min-width:0"><div class="weak-word">${esc(w.word)}</div>
-            <div class="weak-mean">${esc(w.meaning || "")}</div></div>
-            <span class="weak-acc ${w.accuracy < 50 ? "lo" : "mid"}">${w.accuracy}%</span></div>`).join("") :
-            `<div class="mastery-empty">${empty}</div>`;
-        box.innerHTML = `
-            <div class="kpi-row" style="grid-template-columns:repeat(5,1fr)">
-                ${kpi(s.totals.attempts, "총 응시")}${kpi(s.avg_score + "%", "평균 점수")}${kpi(s.best_score + "%", "최고 점수")}
-                ${kpi(m.mastered, "정복 단어")}${kpi(s.week_attempts || 0, "이번 주 응시")}</div>
-            <div class="stats-lower" style="margin-top:16px">
-                <div class="chart-card"><h3>시험지별 성적</h3><div class="exam-scores">${scoreBars}</div></div>
-                <div class="recent-card"><h3>단어 숙련도</h3>
-                    <div class="mastery-legend" style="margin-bottom:12px">
-                        <span><i class="dot-m" style="background:var(--green)"></i> 정복 ${m.mastered}</span>
-                        <span><i class="dot-m" style="background:var(--primary)"></i> 학습중 ${m.learning}</span>
-                        <span><i class="dot-m" style="background:var(--red)"></i> 취약 ${m.weak}</span></div>
-                    <h4 class="mini-list-title" style="margin-top:0">취약 단어 (${(a.weak_words || []).length})</h4>
-                    <div class="weak-list">${wordList(a.weak_words || [], "취약 단어가 없어요 👍")}</div>
-                </div>
-            </div>
-            <div class="card" style="margin-top:16px"><h3>학습 중인 단어 (${(a.learning_words || []).length})</h3>
-                <div class="mini-word-list" style="max-height:300px">${(a.learning_words || []).length ?
-                    (a.learning_words).map(w => `<div class="mini-word-item"><span class="mw-word">${esc(w.word)}</span>
-                    <span class="mw-mean">${esc(w.meaning || "")}</span>
-                    <span class="mw-streak">${"●".repeat(Math.min(w.streak, 2))}${"○".repeat(Math.max(0, 2 - w.streak))}</span></div>`).join("")
-                    : `<div class="mastery-empty" style="padding:14px 0">학습 중인 단어가 아직 없어요.</div>`}</div></div>`;
-    } catch (e) { box.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
-}
-
-// ============================================================
-// 학습 캘린더 (망각곡선 복습 알림 + 학습 기록)
-// ============================================================
-let calState = { year: 0, month: 0, data: null, plan: {} };
-
-async function loadCalendar() {
-    if (!calState.year) {
-        const now = new Date();
-        calState.year = now.getFullYear();
-        calState.month = now.getMonth();  // 0-11
-    }
-    try {
-        calState.data = await api("/api/calendar");
-    } catch (e) { calState.data = { study: {}, reviews: {}, today: "" }; }
-    // 활성 플랜의 날짜별 신규/복습 개수를 캘린더에 겹쳐 표시
-    calState.plan = {};
-    calState.planDays = {};
-    calState.planId = null;
-    calState.planDone = new Set();
-    try {
-        const { plan } = await api("/api/planner");
-        if (plan) {
-            calState.planId = plan.id;
-            (plan.done || []).forEach(([d, k]) => calState.planDone.add(d + "|" + k));
-            plan.schedule.forEach(d => {
-                calState.plan[d.date] = { new: d.new.length, review: d.review.length };
-                calState.planDays[d.date] = d;   // 실제 단어 목록 (상세용)
-            });
-        }
-    } catch (e) {}
-    renderCalendar();
-}
-
-function calMove(delta) {
-    calState.month += delta;
-    if (calState.month < 0) { calState.month = 11; calState.year--; }
-    if (calState.month > 11) { calState.month = 0; calState.year++; }
-    renderCalendar();
-    document.getElementById("cal-day-detail").classList.add("hidden");
-}
-
-function renderCalendar() {
-    const { year, month, data } = calState;
-    document.getElementById("cal-title").textContent = `${year}.${String(month + 1).padStart(2, "0")}`;
-    const first = new Date(year, month, 1);
-    const startDow = first.getDay();
-    const daysIn = new Date(year, month + 1, 0).getDate();
-    const todayStr = data?.today || "";
-    const pad2 = n => String(n).padStart(2, "0");
-
-    let cells = "";
-    for (let i = 0; i < startDow; i++) cells += `<div class="cal-cell empty"></div>`;
-    for (let d = 1; d <= daysIn; d++) {
-        const dateStr = `${year}-${pad2(month + 1)}-${pad2(d)}`;
-        const study = data?.study?.[dateStr];
-        const reviewDue = data?.reviews?.[dateStr];
-        const note = data?.notes?.[dateStr];
-        const plan = calState.plan?.[dateStr];
-        const isToday = dateStr === todayStr;
-        const hasAny = study || reviewDue || plan || note;
-        // 플랜/복습 칩: 미완료는 재생(▶)·드래그, 완료는 체크(✓)·클릭 시 결과 보기
-        let chips = "";
-        const doneNew = calState.planDone?.has(dateStr + "|new");
-        const doneRev = calState.planDone?.has(dateStr + "|review");
-        if (plan && plan.new) chips += doneNew
-            ? `<span class="cal-plan-chip new done" onclick="event.stopPropagation(); openCalendarDay('${dateStr}')" title="학습 완료 · 결과 보기">📘 새 ${plan.new} <span class="cpc-done">✓</span></span>`
-            : `<button class="cal-plan-chip new" draggable="true" ondragstart="dragCalPlan(event,'${dateStr}','new')" onclick="event.stopPropagation(); startPlanDay('${dateStr}','new')" title="새 단어 학습 · 드래그하면 날짜 이동">📘 새 ${plan.new} <span class="cpc-play">▶</span></button>`;
-        if (plan && plan.review) chips += doneRev
-            ? `<span class="cal-plan-chip review done" onclick="event.stopPropagation(); openCalendarDay('${dateStr}')" title="복습 완료 · 결과 보기">🔂 복습 ${plan.review} <span class="cpc-done">✓</span></span>`
-            : `<button class="cal-plan-chip review" draggable="true" ondragstart="dragCalPlan(event,'${dateStr}','review')" onclick="event.stopPropagation(); startPlanDay('${dateStr}','review')" title="복습 · 드래그하면 날짜 이동">🔂 복습 ${plan.review} <span class="cpc-play">▶</span></button>`;
-        else if (reviewDue) chips += `<button class="cal-plan-chip srs" draggable="true" ondragstart="dragCalSrs(event,'${dateStr}')" onclick="event.stopPropagation(); startReview()" title="망각곡선 복습 · 드래그하면 날짜 이동">🔁 복습 ${reviewDue} <span class="cpc-play">▶</span></button>`;
-        // 커스텀 일정 칩 (드래그해서 다른 날짜로 이동 가능)
-        chips += (data?.note_items?.[dateStr] || []).map(n =>
-            `<span class="cal-note-chip ${n.done ? "done" : ""}" draggable="true"
-                ondragstart="dragCalNote(event, ${n.id})" onclick="event.stopPropagation(); openCalendarDay('${dateStr}')"
-                title="${esc(n.text)}">${esc(n.text)}</span>`).join("");
-        // 학습 완료한 날은 파란 박스로 강조
-        const studied = study ? "studied" : "";
-        cells += `<div class="cal-cell ${isToday ? "today" : ""} ${hasAny ? "has" : ""} ${studied}"
-            ondragover="event.preventDefault(); this.classList.add('drop-over')" ondragleave="this.classList.remove('drop-over')"
-            ondrop="dropCalCell(event, '${dateStr}')" onclick="openCalendarDay('${dateStr}')">
-            <span class="cal-num">${d}</span>
-            <div class="cal-chips">${chips}</div>
-        </div>`;
-    }
-    document.getElementById("cal-grid").innerHTML = cells;
-}
-
-// 드래그로 캘린더 항목(커스텀 일정 / AI 플랜 / 망각곡선 복습) 날짜 이동
-let _dragItem = null;
-// setData 를 호출해야 일부 브라우저에서 drop 이벤트가 정상 발생
-function _dragInit(e) { try { e.dataTransfer.setData("text/plain", "move"); } catch (_) {} e.dataTransfer.effectAllowed = "move"; }
-function dragCalNote(e, id) { _dragItem = { type: "note", id }; _dragInit(e); }
-function dragCalPlan(e, date, kind) { _dragItem = { type: "plan", from: date, kind }; _dragInit(e); }
-function dragCalSrs(e, date) { _dragItem = { type: "srs", from: date }; _dragInit(e); }
-async function dropCalCell(e, date) {
-    e.preventDefault();
-    document.querySelectorAll(".cal-cell.drop-over").forEach(c => c.classList.remove("drop-over"));
-    const item = _dragItem; _dragItem = null;
-    if (!item) return;
-    try {
-        if (item.type === "note") {
-            await api(`/api/calendar/note/${item.id}/move`, { method: "POST", body: { date } });
-        } else if (item.type === "plan") {
-            if (item.from === date || !calState.planId) return;
-            const r = await api(`/api/planner/${calState.planId}/move`, { method: "POST", body: { from_date: item.from, to_date: date, kind: item.kind } });
-            toast(r.recalculated ? "학습일을 옮기고 망각곡선 복습을 다시 계산했어요 📅" : "복습 일정을 옮겼어요 🔁", "success");
-            loadNotifications();
-        } else if (item.type === "srs") {
-            if (item.from === date) return;
-            const r = await api("/api/srs/reschedule", { method: "POST", body: { from_date: item.from, to_date: date } });
-            toast(`이 날 복습 예정 단어 ${r.moved}개를 옮겼어요 🔁`, "success");
-            loadNotifications();
-        }
-        loadCalendar(); loadToday();
-    } catch (err) { toastErr(err.message); }
-}
-
-let _calDayDate = null;
-
-async function openCalendarDay(date) {
-    _calDayDate = date;
-    document.getElementById("calday-title").textContent = date;
-    document.getElementById("calday-modal").classList.remove("hidden");
-    await renderCalDay();
-}
-function closeCalDay(e) {
-    if (e && e.target !== e.currentTarget) return;
-    document.getElementById("calday-modal").classList.add("hidden");
-}
-
-async function renderCalDay() {
-    const date = _calDayDate;
-    const box = document.getElementById("calday-body");
-    box.innerHTML = `<div class="muted" style="padding:14px 0">불러오는 중…</div>`;
-    try {
-        const d = await api(`/api/calendar/day/${date}`);
-        const attemptsHtml = d.attempts.length ? `
-            <h4 class="cal-detail-sub">이 날의 학습 기록</h4>
-            ${d.attempts.map(a => {
-                const cls = a.score >= 80 ? "hi" : (a.score >= 50 ? "mid" : "lo");
-                return `<div class="hist-row" onclick="closeCalDay(); viewAttempt(${a.id})" style="cursor:pointer">
-                    <span>${esc(a.exam_name)} <span class="muted">${fmtDate(a.created_at).slice(11)}</span></span>
-                    <span><span class="ri-score ${cls}">${a.score}%</span> · ${a.correct}/${a.total}</span>
-                </div>`;
-            }).join("")}` : "";
-        const pd = calState.planDays?.[date];
-        let planHtml = "";
-        if (pd && (pd.new.length || pd.review.length)) {
-            const chips = arr => `<div class="cal-due-list">${arr.map(w =>
-                `<span class="cal-due-chip"><b>${esc(w.word)}</b> ${esc(w.meaning || "")}</span>`).join("")}</div>`;
-            planHtml = `<h4 class="cal-detail-sub">플랜: 이 날 학습</h4>`;
-            if (pd.new.length) planHtml += `<p class="muted" style="margin:2px 0 6px">새 단어 ${pd.new.length}개</p>` +
-                chips(pd.new) + `<button class="btn-accent" style="margin:10px 0" onclick='closeCalDay(); startFlashcardsWith(${jsAttr(pd.new)}, "planner")'>새 단어 학습</button>`;
-            if (pd.review.length) planHtml += `<p class="muted" style="margin:10px 0 6px">복습 ${pd.review.length}개</p>` +
-                chips(pd.review) + `<button class="btn-accent" style="margin:10px 0" onclick='closeCalDay(); startFlashcardsWith(${jsAttr(pd.review)}, "planner")'>복습하기</button>`;
-        }
-        const dueHtml = d.due.length ? `
-            <h4 class="cal-detail-sub">망각곡선 복습 예정 (${d.due.length})</h4>
-            <div class="cal-due-list">${d.due.map(w =>
-                `<span class="cal-due-chip"><b>${esc(w.word)}</b> ${esc(w.meaning || "")}</span>`).join("")}</div>
-            <button class="btn-accent" style="margin-top:12px" onclick="closeCalDay(); startReview()">지금 복습하기</button>` : "";
-        // 커스텀 일정
-        const notesHtml = `
-            <h4 class="cal-detail-sub">내 일정</h4>
-            <div class="calnote-list">${d.notes.length ? d.notes.map(n => `
-                <div class="calnote-item ${n.done ? "done" : ""}">
-                    <button class="calnote-check" onclick="toggleCalNote(${n.id})">${n.done ? "☑" : "☐"}</button>
-                    <span class="calnote-text">${esc(n.text)}</span>
-                    <button class="calnote-del" onclick="deleteCalNote(${n.id})">×</button>
-                </div>`).join("") : `<div class="muted" style="padding:6px 0">추가한 일정이 없어요.</div>`}
-            </div>
-            <div class="calnote-add">
-                <input type="text" id="calnote-input" placeholder="예: 단어 30개 외우기" onkeydown="if(event.key==='Enter')addCalNote()">
-                <button class="btn-primary" style="width:auto" onclick="addCalNote()">추가</button>
-            </div>`;
-        box.innerHTML = planHtml + attemptsHtml + dueHtml + notesHtml;
-    } catch (e) { box.innerHTML = `<div class="empty-state">${esc(e.message)}</div>`; }
-}
-
-async function addCalNote() {
-    const inp = document.getElementById("calnote-input");
-    const text = inp.value.trim();
-    if (!text) return;
-    try {
-        await api("/api/calendar/note", { method: "POST", body: { date: _calDayDate, text } });
-        await renderCalDay();
-        loadCalendar(); loadToday();
-    } catch (e) { toastErr(e.message); }
-}
-async function toggleCalNote(id) {
-    try { await api(`/api/calendar/note/${id}/toggle`, { method: "POST" }); await renderCalDay(); loadToday(); }
-    catch (e) { toastErr(e.message); }
-}
-async function deleteCalNote(id) {
-    try { await api(`/api/calendar/note/${id}`, { method: "DELETE" }); await renderCalDay(); loadCalendar(); loadToday(); }
-    catch (e) { toastErr(e.message); }
-}
-
-// ============================================================
-// 오늘 할 일 (망각곡선 복습 + 플랜 + 배정 시험)
-// ============================================================
-let todayState = {};
-
-async function loadToday() {
-    const dateStr = new Date().toLocaleDateString("ko-KR",
-        { year: "numeric", month: "long", day: "numeric", weekday: "long" });
-    document.querySelectorAll(".today-date").forEach(el => el.textContent = dateStr);
-    const setAll = html => document.querySelectorAll(".today-list").forEach(el => el.innerHTML = html);
-    try {
-        const t = await api("/api/today");
-        todayState = t;
-        const items = [];
-        // 1) 망각곡선 복습
-        if (t.reviews_due > 0) items.push(`
-            <div class="todo-item" onclick="startReview()">
-                <span class="todo-ico" data-icon="repeat"></span>
-                <div class="todo-body"><b>망각곡선 복습 ${t.reviews_due}개</b>
-                    <span class="muted">잊을 때가 된 단어예요. 지금이 복습 적기!</span></div>
-                <span class="todo-go" data-icon="chevron"></span>
-            </div>`);
-        // 2) 플랜의 오늘 항목
-        const p = t.plan_today;
-        if (p && p.new.length && !p.new_done) items.push(`
-            <div class="todo-item" onclick='startPlanNew(${jsAttr(p.new)})'>
-                <span class="todo-ico" data-icon="book"></span>
-                <div class="todo-body"><b>오늘의 새 단어 ${p.new.length}개</b>
-                    <span class="muted">${esc(p.plan_name)} · 플래시카드로 학습</span></div>
-                <span class="todo-go" data-icon="chevron"></span>
-            </div>`);
-        if (p && p.review.length && !p.review_done) items.push(`
-            <div class="todo-item" onclick='startPlanReview(${jsAttr(p.review)})'>
-                <span class="todo-ico" data-icon="repeat"></span>
-                <div class="todo-body"><b>플랜 복습 ${p.review.length}개</b>
-                    <span class="muted">${esc(p.plan_name)} · 오늘 복습 예정 단어</span></div>
-                <span class="todo-go" data-icon="chevron"></span>
-            </div>`);
-        // 3) 배정된 시험 (미응시)
-        (t.assignments || []).forEach(a => items.push(`
-            <div class="todo-item" onclick="openExam(${a.exam_id})">
-                <span class="todo-ico" data-icon="doc"></span>
-                <div class="todo-body"><b>${esc(a.exam_name)}</b>
-                    <span class="muted">${esc(a.class_name)} · 선생님이 배정한 시험</span></div>
-                <span class="todo-go" data-icon="chevron"></span>
-            </div>`));
-        // 4) 내가 추가한 커스텀 일정
-        (t.notes || []).forEach(n => items.push(`
-            <div class="todo-item todo-note">
-                <button class="todo-ico todo-check" onclick="event.stopPropagation(); completeTodayNote(${n.id})" title="완료">☐</button>
-                <div class="todo-body"><b>${esc(n.text)}</b>
-                    <span class="muted">내가 추가한 일정</span></div>
-            </div>`));
-
-        setAll(items.length ? items.join("")
-            : `<div class="today-clear">오늘 할 일을 모두 끝냈어요! 👏<br><span class="muted">플랜을 만들면 매일 할 일이 여기 표시됩니다.</span></div>`);
-        document.querySelectorAll(".today-list [data-icon]").forEach(el => { if (ICONS[el.dataset.icon]) el.innerHTML = ICONS[el.dataset.icon]; });
-    } catch (e) { setAll(`<div class="today-clear muted">불러오기 실패</div>`); }
-}
-
-async function completeTodayNote(id) {
-    try { await api(`/api/calendar/note/${id}/toggle`, { method: "POST" }); loadToday(); loadCalendar(); }
-    catch (e) { toastErr(e.message); }
-}
-
-// 플랜: 오늘의 새 단어를 플래시카드로 학습 → 완료 표시
-function startPlanNew(words) {
-    startFlashcardsWith(words, "planner");
-    if (todayState.plan_today) markPlanDone(todayState.plan_today.plan_id, "new");
-}
-function startPlanReview(words) {
-    startFlashcardsWith(words, "planner");
-    if (todayState.plan_today) markPlanDone(todayState.plan_today.plan_id, "review");
-}
-async function markPlanDone(planId, kind) {
-    try {
-        const today = new Date().toISOString().slice(0, 10);
-        await api(`/api/planner/${planId}/complete`, { method: "POST", body: { date: today, kind } });
-    } catch (e) {}
-}
-
-// 캘린더 플랜 칩의 ▶ 재생 버튼: 그 날 항목 바로 학습
-function startPlanDay(date, kind) {
-    const day = calState.planDays?.[date];
-    if (!day) return;
-    const words = (kind === "new" ? day.new : day.review) || [];
-    if (!words.length) return toastErr("학습할 항목이 없어요.");
-    startFlashcardsWith(words, "planner");
-    // 오늘 날짜면 완료 표시
-    if (calState.planId && date === (calState.data?.today || "")) markPlanDone(calState.planId, kind);
-}
 
 // ============================================================
 // 학습 플랜 (표시 + AI 플래너)
-// ============================================================
-async function loadPlanner() {
-    const box = document.getElementById("plan-box");
-    try {
-        const { plan } = await api("/api/planner");
-        if (!plan) {
-            box.innerHTML = `<div class="empty-state">아직 학습 플랜이 없어요.<br>“＋ AI 학습 플래너”로 망각곡선 맞춤 계획을 세워보세요!</div>`;
-            return;
-        }
-        const pct = plan.total_days ? Math.round(plan.done_days / plan.total_days * 100) : 0;
-        const WD = ["일", "월", "화", "수", "목", "금", "토"];
-        let periodTxt = "";
-        if (plan.period_days) {
-            periodTxt = plan.period_days % 7 === 0
-                ? ` · 기간 ${plan.period_days / 7}주` : ` · 기간 ${plan.period_days}일`;
-        }
-        const exc = plan.exclude_weekdays || [];
-        const excTxt = exc.length ? ` · ${exc.map(d => WD[d]).join("·")} 제외` : "";
-        const targetTxt = periodTxt + excTxt;
-        box.innerHTML = `
-            <div class="plan-summary-card">
-                <div class="panel-head" style="margin-bottom:10px">
-                    <div><b style="font-size:1.05rem">${esc(plan.name)}</b>
-                        <div class="muted">${esc(plan.goal || "매일 조금씩 · 망각곡선 복습")}${targetTxt}</div></div>
-                    <div style="display:flex; gap:6px">
-                        <button class="btn-secondary" onclick="startPlanner(${jsAttr({ wordbook_ids: plan.wordbook_ids || [], goal: plan.goal, period_days: plan.period_days, exclude_weekdays: plan.exclude_weekdays || [], daily_new: plan.daily_new })})">✏️ 수정</button>
-                        <button class="btn-ghost danger" onclick="deletePlan(${plan.id})">삭제</button>
-                    </div>
-                </div>
-                <div class="plan-progress-track"><div class="plan-progress-bar" style="width:${pct}%"></div></div>
-                <div class="muted" style="margin-top:6px">진행 ${plan.done_days} / ${plan.total_days}일 (${pct}%) · 하루 새 단어 ${plan.daily_new}개 · 복습 간격 ${plan.intervals.join("·")}일</div>
-            </div>`;
-    } catch (e) { box.innerHTML = ""; }
-}
 
-async function deletePlan(id) {
-    if (!await showConfirm("플랜 삭제", "학습 플랜을 삭제할까요?", { okText: "삭제", danger: true })) return;
-    try {
-        await api(`/api/planner/${id}`, { method: "DELETE" });
-        loadPlanner(); loadCalendar(); loadToday();
-        toast("플랜을 삭제했어요.", "success");
-    } catch (e) { toastErr(e.message); }
-}
 
 let plState = { wordbooks: [], selected: new Set(), preview: null };
 
-async function startPlanner(prefill) {
-    try {
-        const { wordbooks } = await api("/api/wordbooks");
-        if (!wordbooks.length) return toastErr("먼저 단어장을 만들어주세요.");
-        const preIds = new Set((prefill && prefill.wordbook_ids) || []);
-        plState = { wordbooks, selected: preIds, preview: null };
-        document.getElementById("pl-wordbooks").innerHTML = wordbooks.map(wb => `
-            <label class="ec-wb ${preIds.has(wb.id) ? "sel" : ""}" data-id="${wb.id}">
-                <input type="checkbox" ${preIds.has(wb.id) ? "checked" : ""} onchange="togglePlWb(${wb.id}, this.checked)">
-                <span class="ec-wb-body"><b>${esc(wb.name)}</b>
-                    <span class="ec-wb-meta">${langLabel(wb.language)} · ${wb.word_count}단어</span></span>
-            </label>`).join("");
-        document.getElementById("pl-goal").value = (prefill && prefill.goal) || "";
-        // 기간 프리필: 7의 배수면 '주', 아니면 '일'
-        const pd = prefill && prefill.period_days;
-        const unitSel = document.getElementById("pl-period-unit");
-        const periodInp = document.getElementById("pl-period");
-        if (pd && pd % 7 === 0) { unitSel.value = "7"; periodInp.value = pd / 7; }
-        else if (pd) { unitSel.value = "1"; periodInp.value = pd; }
-        else { unitSel.value = "7"; periodInp.value = ""; }
-        // 제외 요일 체크박스 프리필
-        const exc = new Set((prefill && prefill.exclude_weekdays) || []);
-        document.querySelectorAll("#pl-exclude input[type=checkbox]").forEach(cb => {
-            cb.checked = exc.has(parseInt(cb.value));
-            cb.closest(".wd-chip").classList.toggle("on", cb.checked);
-        });
-        document.getElementById("pl-daily").value = (prefill && prefill.daily_new) || "";
-        document.getElementById("pl-name").value = "";
-        document.getElementById("pl-preview").classList.add("hidden");
-        updatePlCount();
-        showView("view-planner");
-    } catch (e) { toastErr(e.message); }
-}
 
-function togglePlWb(id, checked) {
-    if (checked) plState.selected.add(id); else plState.selected.delete(id);
-    document.querySelector(`#pl-wordbooks .ec-wb[data-id="${id}"]`)?.classList.toggle("sel", checked);
-    updatePlCount();
-}
-function updatePlCount() {
-    const total = plState.wordbooks.filter(w => plState.selected.has(w.id))
-        .reduce((s, w) => s + (w.word_count || 0), 0);
-    document.getElementById("pl-word-count").textContent = total;
-}
-// 공부 안 하는 요일 칩 토글 (체크 시 붉게 강조)
-function toggleWd(cb) { cb.closest(".wd-chip").classList.toggle("on", cb.checked); }
 
-async function planPreview() {
-    const ids = [...plState.selected];
-    if (!ids.length) return toastErr("공부할 단어장을 선택하세요.");
-    const goal = document.getElementById("pl-goal").value.trim();
-    const periodNum = parseInt(document.getElementById("pl-period").value) || 0;
-    const unit = parseInt(document.getElementById("pl-period-unit").value) || 7;
-    const periodDays = periodNum > 0 ? periodNum * unit : null;
-    const exclude = [...document.querySelectorAll("#pl-exclude input:checked")].map(cb => parseInt(cb.value));
-    const daily = parseInt(document.getElementById("pl-daily").value) || null;
-    const btn = document.querySelector('#view-planner .btn-accent');
-    const old = btn.textContent; btn.textContent = "🤖 AI가 계획 세우는 중..."; btn.disabled = true;
-    try {
-        const pv = await api("/api/planner/preview", { method: "POST", body: {
-            wordbook_ids: ids, goal, period_days: periodDays, exclude_weekdays: exclude, daily_new: daily } });
-        plState.preview = { ids, goal, periodDays, exclude, daily: pv.daily_new, reviews: (pv.intervals || []).length };
-        renderPlanPreview(pv);
-    } catch (e) { toastErr(e.message); }
-    finally { btn.textContent = old; btn.disabled = false; }
-}
 
-function renderPlanPreview(pv) {
-    const label = pv.ai_used ? "AI 코치 추천" : "학습 과학 기반 추천";
-    let lock = "";
-    if (pv.ai_locked) {
-        lock = `<div class="plan-lock">🔒 무료 등급의 AI 맞춤 추천을 모두 사용했어요 (${pv.ai_used_count}/${pv.ai_limit}·월).
-            지금은 학습 과학 기반 자동 플랜으로 만들어 드려요.
-            <a onclick="openProfile()">프리미엄으로 업그레이드</a>하면 AI 맞춤 추천을 무제한 이용할 수 있어요.</div>`;
-    } else if (!pv.ai_used && pv.ai_limit < 9999) {
-        lock = `<div class="plan-lock-note">이번 달 AI 맞춤 추천 ${pv.ai_used_count}/${pv.ai_limit}회 사용</div>`;
-    }
-    document.getElementById("pl-summary").innerHTML =
-        `<b>${label}</b><br><span>${esc(pv.summary)}</span>${lock}`;
-    const s = pv.stats;
-    document.getElementById("pl-stats").innerHTML = `
-        <div class="plan-stat"><div class="ps-num">${pv.word_count}</div><div class="ps-lbl">단어</div></div>
-        <div class="plan-stat"><div class="ps-num">${pv.daily_new}</div><div class="ps-lbl">하루 새 단어</div></div>
-        <div class="plan-stat"><div class="ps-num">${pv.days.length}</div><div class="ps-lbl">학습일</div></div>
-        <div class="plan-stat"><div class="ps-num">${s.total_review}</div><div class="ps-lbl">총 복습</div></div>`;
-    // 망각곡선 미니 그래프
-    document.getElementById("pl-curve").innerHTML = curveSVG(pv.retention_curve, pv.intervals);
-    document.getElementById("pl-intervals").textContent =
-        `복습 간격: 첫 학습 후 ${pv.intervals.join(", ")}일째에 복습 (에빙하우스 망각곡선 기반 확장 간격)`;
-    // 계획 미리보기 (처음 14일)
-    document.getElementById("pl-days").innerHTML = pv.days.slice(0, 14).map(d => `
-        <div class="plan-day">
-            <span class="pd-date">${d.date.slice(5)}</span>
-            <span class="pd-tags">${d.new ? `<span class="pd-new">새 ${d.new}</span>` : ""}${d.review ? `<span class="pd-rev">복습 ${d.review}</span>` : ""}</span>
-        </div>`).join("") + (pv.days.length > 14 ? `<div class="muted" style="text-align:center;padding:8px">…외 ${pv.days.length - 14}일</div>` : "");
-    document.getElementById("pl-preview").classList.remove("hidden");
-    document.getElementById("pl-preview").scrollIntoView({ behavior: "smooth", block: "nearest" });
-}
 
-// 예상 망각곡선 SVG (복습 시점 표시)
-function curveSVG(curve, intervals) {
-    const W = 520, H = 150, padL = 30, padR = 12, padT = 12, padB = 24;
-    const iw = W - padL - padR, ih = H - padT - padB;
-    const maxDay = Math.max(...curve.map(c => c.day), 1);
-    const xAt = day => padL + iw * day / maxDay;
-    const yAt = r => padT + ih * (1 - r / 100);
-    const pts = curve.map(c => [xAt(c.day), yAt(c.retention)]);
-    const line = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
-    const dots = curve.map((c, i) => `<circle cx="${pts[i][0].toFixed(1)}" cy="${pts[i][1].toFixed(1)}" r="3.5" class="tc-dot"/>`).join("");
-    const marks = curve.filter(c => c.day > 0).map(c =>
-        `<line x1="${xAt(c.day).toFixed(1)}" y1="${padT}" x2="${xAt(c.day).toFixed(1)}" y2="${padT + ih}" class="curve-mark"/>` +
-        `<text x="${xAt(c.day).toFixed(1)}" y="${H - 8}" class="tc-axis" text-anchor="middle">${c.day}d</text>`).join("");
-    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="망각곡선">
-        <line x1="${padL}" y1="${yAt(90)}" x2="${W - padR}" y2="${yAt(90)}" class="tc-grid"/>
-        <text x="${padL - 4}" y="${yAt(90) + 3}" class="tc-axis" text-anchor="end">90</text>
-        ${marks}
-        <path d="${line}" class="tc-line"/>${dots}
-    </svg>`;
-}
 
-async function savePlan() {
-    if (!plState.preview) return toastErr("먼저 AI 플랜을 생성하세요.");
-    const name = document.getElementById("pl-name").value.trim() || "나의 학습 플랜";
-    const pv = plState.preview;
-    try {
-        await api("/api/planner", { method: "POST", body: {
-            name, goal: pv.goal, wordbook_ids: pv.ids,
-            period_days: pv.periodDays, exclude_weekdays: pv.exclude,
-            daily_new: pv.daily, reviews: pv.reviews } });
-        toast("학습 플랜을 시작했어요! 매일 오늘 할 일을 확인하세요.", "success");
-        navTo("calendar");
-    } catch (e) { toastErr(e.message); }
-}
 
 async function loadWordbooks() {
     const el = document.getElementById("wordbook-list");
@@ -1712,384 +880,33 @@ async function openExamResults(id) {
 // ============================================================
 // 반 · 교사 모드
 // ============================================================
-let currentClass = null;
 
-async function loadClasses() {
-    // 선생님: "내가 만든 반"만 표시 / 학생·프리미엄: "참여한 반"만 표시
-    const isTeacher = !!CURRENT_USER?.limits?.can_create_class;
-    document.getElementById("teacher-section").classList.toggle("hidden", !isTeacher);
-    document.getElementById("student-section").classList.toggle("hidden", isTeacher);
-    if (isTeacher) {
-        try {
-            const { classes } = await api("/api/classes");
-            const el = document.getElementById("teacher-classes");
-            el.innerHTML = classes.length ? classes.map(c => `
-                <div class="item-card" onclick="openTeacherClass(${c.id})">
-                    <div class="ic-title">${esc(c.name)}</div>
-                    <div class="ic-desc">참여 코드 <b>${esc(c.join_code)}</b></div>
-                    <div class="ic-meta">
-                        <span class="badge">학생 ${c.student_count}명</span>
-                        <span class="badge gray">시험지 ${c.assignment_count}개</span>
-                    </div>
-                </div>`).join("") :
-                `<div class="empty-state">아직 만든 반이 없어요.<br>"＋ 반 만들기"로 개설하고 학생에게 코드를 알려주세요.</div>`;
-        } catch (e) {}
-    } else {
-        try {
-            const { classes } = await api("/api/classes/joined");
-            const el = document.getElementById("student-classes");
-            el.innerHTML = classes.length ? classes.map(c => `
-                <div class="item-card" onclick="openStudentClass(${c.id})">
-                    <div class="ic-title">${esc(c.name)}</div>
-                    <div class="ic-desc">${esc(c.teacher_name)} 선생님</div>
-                    <div class="ic-meta"><span class="badge">과제 ${c.assignment_count}개</span></div>
-                </div>`).join("") :
-                `<div class="empty-state">참여한 반이 없어요.<br>선생님께 받은 코드를 입력해 참여하세요.</div>`;
-        } catch (e) {}
-    }
-}
 
-function createClass() {
-    if (!CURRENT_USER?.limits?.can_create_class) {
-        toast("반 개설은 선생님 회원만 가능해요.", "error");
-        return openProfile();
-    }
-    openInputModal("반 만들기", "학생에게 공유할 반 이름을 정해주세요.", "예: 중2 영어 A반", "", async (name) => {
-        if (!name) return;
-        try {
-            await api("/api/classes", { method: "POST", body: { name } });
-            toast("반을 만들었어요! 학생을 추가해보세요.", "success");
-            if (CURRENT_USER?.limits?.can_create_class) loadTeacherDash(); else loadClasses();
-        } catch (e) { toast(e.message, "error"); }
-    });
-}
 
-async function joinClass() {
-    const code = document.getElementById("join-code").value.trim();
-    if (!code) return toast("참여 코드를 입력하세요.", "error");
-    try {
-        const r = await api("/api/classes/join", { method: "POST", body: { code } });
-        document.getElementById("join-code").value = "";
-        toast(`'${r.name}' 반에 참여했어요!`, "success");
-        loadClasses();
-    } catch (e) { toast(e.message, "error"); }
-}
 
-// ---- 선생님 반 상세 ----
-async function openTeacherClass(cid) {
-    try {
-        const data = await api(`/api/classes/${cid}`);
-        currentClass = data.class;
-        document.getElementById("ct-name").textContent = data.class.name;
-        document.getElementById("ct-take-link").value = `${location.origin}/?take=${data.class.join_code}`;
-        const max = CURRENT_USER?.limits?.max_students || 40;
-        document.getElementById("ct-student-count").textContent = `학생 ${data.roster.length} / ${max}명`;
-        document.getElementById("ct-roster-cap").textContent = `(${data.roster.length} / ${max})`;
-        // 시험지 배정 옵션
-        const { exams } = await api("/api/exams");
-        const assignedIds = new Set(data.assignments.map(a => a.exam_id));
-        const opts = exams.filter(e => !assignedIds.has(e.id));
-        document.getElementById("assign-exam").innerHTML = opts.length
-            ? opts.map(e => `<option value="${e.id}">${esc(e.name)} (${e.question_count}문항)</option>`).join("")
-            : `<option value="">배정할 시험지가 없어요</option>`;
-        // 단어장 배정 옵션
-        const { wordbooks } = await api("/api/wordbooks");
-        const wbAssigned = new Set((data.wordbook_assignments || []).map(a => a.wordbook_id));
-        const wbOpts = wordbooks.filter(w => !wbAssigned.has(w.id));
-        document.getElementById("assign-wordbook").innerHTML = wbOpts.length
-            ? wbOpts.map(w => `<option value="${w.id}">${esc(w.name)} (${w.word_count}단어)</option>`).join("")
-            : `<option value="">배정할 단어장이 없어요</option>`;
-        renderAssignments(data.assignments);
-        renderWbAssignments(data.wordbook_assignments || []);
-        renderRoster(data.roster);
-        renderClassDashboard(data);
-        showView("view-class-teacher");
-    } catch (e) { toastErr(e.message); }
-}
 
-function renderAssignments(assignments) {
-    document.getElementById("ct-assignments").innerHTML = assignments.length ? assignments.map(a => `
-        <div class="assign-item">
-            <span>📝 ${esc(a.exam_name)} <span class="muted">(${a.question_count}문항)</span></span>
-            <button class="btn-close" title="배정 취소" onclick="unassign(${a.id})">×</button>
-        </div>`).join("") : `<div class="muted" style="margin-top:8px">아직 배정한 시험지가 없어요.</div>`;
-}
 
-function renderWbAssignments(list) {
-    document.getElementById("ct-wb-assignments").innerHTML = list.length ? list.map(a => `
-        <div class="assign-item">
-            <span>📘 ${esc(a.wordbook_name)} <span class="muted">(${a.word_count}단어)</span></span>
-            <button class="btn-close" title="배정 취소" onclick="unassignWordbook(${a.id})">×</button>
-        </div>`).join("") : `<div class="muted" style="margin-top:8px">아직 배정한 단어장이 없어요.</div>`;
-}
 
-// 로스터 학생 카드 (숫자 학생 ID 표시, 삭제)
-function renderRoster(roster) {
-    const el = document.getElementById("ct-roster");
-    if (!roster.length) return el.innerHTML = `<div class="empty-state">아직 학생이 없어요.<br>“＋ 학생 추가”로 등록하세요.</div>`;
-    el.innerHTML = roster.map(s => `
-        <div class="roster-card" onclick="openStudentDetail(${currentClass.id}, ${s.student_id})">
-            <div class="rc-main">
-                <span class="rc-name">${esc(s.nickname || s.email)} <span class="stu-arrow">›</span></span>
-                ${s.student_sid ? `<span class="rc-id">ID ${esc(s.student_sid)}</span>` : `<span class="rc-id gray">ID 없음</span>`}
-            </div>
-            <button class="btn-close" title="학생 삭제" onclick="event.stopPropagation(); removeStudent(${currentClass.id}, ${s.student_id}, '${esc(s.nickname || s.email)}')">×</button>
-        </div>`).join("");
-}
 
-// 학생 추가 → 반 코드 + 숫자 학생 ID 발급 안내
-function addStudent() {
-    openInputModal("학생 추가", "학생 이름을 입력하면 숫자 학생 ID가 발급돼요.", "예: 홍길동", "", async (name) => {
-        if (!name) return;
-        try {
-            const r = await api(`/api/classes/${currentClass.id}/students`, { method: "POST", body: { name } });
-            showStudentCredentials(r);
-            openTeacherClass(currentClass.id);
-        } catch (e) { toastErr(e.message); }
-    });
-}
 
-// 발급된 반 코드 + 학생 ID를 크게 안내
-function showStudentCredentials(r) {
-    showConfirm(`✅ ${esc(r.name)} 학생 등록 완료`,
-        `이 학생의 학생 ID는 ${r.sid} 예요.\n\n위의 “🔗 학생용 응시 링크”를 공유하고, 학생에게 이 학생 ID(${r.sid})를 알려주세요.\n학생은 링크에서 이름과 학생 ID를 넣으면 로그인 없이 응시할 수 있어요.`,
-        { okText: "확인" });
-}
 
-async function removeStudent(cid, sid, name) {
-    if (!await showConfirm("학생 삭제", `'${name}' 학생을 삭제할까요?\n학습·응시 기록이 함께 삭제됩니다.`, { okText: "삭제", danger: true })) return;
-    try {
-        await api(`/api/classes/${cid}/students/${sid}`, { method: "DELETE" });
-        openTeacherClass(cid);
-    } catch (e) { toastErr(e.message); }
-}
 
-async function assignWordbook() {
-    const wid = document.getElementById("assign-wordbook").value;
-    if (!wid) return toastErr("배정할 단어장이 없어요. 먼저 단어장을 만들어 주세요.");
-    try {
-        await api(`/api/classes/${currentClass.id}/assign-wordbook`, { method: "POST", body: { wordbook_id: parseInt(wid) } });
-        openTeacherClass(currentClass.id);
-    } catch (e) { toastErr(e.message); }
-}
 
-async function unassignWordbook(aid) {
-    if (!await showConfirm("배정 취소", "이 단어장 배정을 취소할까요?", { okText: "배정 취소", danger: true })) return;
-    try {
-        await api(`/api/wordbook-assignments/${aid}`, { method: "DELETE" });
-        openTeacherClass(currentClass.id);
-    } catch (e) { toastErr(e.message); }
-}
 
-function renderClassDashboard(data) {
-    const el = document.getElementById("ct-dashboard");
-    if (!data.roster.length)
-        return el.innerHTML = `<div class="empty-state">아직 참여한 학생이 없어요.<br>참여 코드를 학생에게 알려주세요.</div>`;
-    // 시험지 배정 전에도 참여한 학생 명단은 항상 보이도록
-    if (!data.assignments.length) {
-        const list = data.roster.map(s => `
-            <div class="roster-item" onclick="openStudentDetail(${currentClass.id}, ${s.student_id})">
-                <span class="stu-name stu-link">${esc(s.nickname || s.email)} <span class="stu-arrow">›</span></span>
-                <span class="muted">${esc(s.email)}</span>
-            </div>`).join("");
-        return el.innerHTML = `<p class="muted" style="margin:0 0 10px">참여한 학생 ${data.roster.length}명 · 시험지를 배정하면 점수 매트릭스가 표시됩니다.</p>
-            <div class="roster-list">${list}</div>`;
-    }
-    const head = `<th>학생</th>` + data.assignments.map(a => `<th>${esc(a.exam_name)}</th>`).join("");
-    const rows = data.roster.map(s => {
-        const cells = data.assignments.map(a => {
-            const sc = data.scores[s.student_id]?.[a.exam_id];
-            if (!sc) return `<td><span class="cell-none">미응시</span></td>`;
-            const cls = sc.best >= 80 ? "hi" : (sc.best >= 50 ? "mid" : "lo");
-            return `<td><span class="cell-score ${cls}">${sc.best}%</span> <small>${sc.attempts}회</small></td>`;
-        }).join("");
-        return `<tr><td class="stu-name stu-link" onclick="openStudentDetail(${currentClass.id}, ${s.student_id})" title="학생 상세 보기">${esc(s.nickname || s.email)} <span class="stu-arrow">›</span></td>${cells}</tr>`;
-    }).join("");
-    el.innerHTML = `<table class="dash-table"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
-}
 
-async function assignExam() {
-    const examId = document.getElementById("assign-exam").value;
-    if (!examId) return toastErr("배정할 시험지가 없어요. 먼저 시험지를 만들어 주세요.");
-    try {
-        await api(`/api/classes/${currentClass.id}/assign`, { method: "POST", body: { exam_id: parseInt(examId) } });
-        openTeacherClass(currentClass.id);
-    } catch (e) { toastErr(e.message); }
-}
 
-async function unassign(aid) {
-    if (!await showConfirm("배정 취소", "이 시험지 배정을 취소할까요?", { okText: "배정 취소", danger: true })) return;
-    try {
-        await api(`/api/assignments/${aid}`, { method: "DELETE" });
-        openTeacherClass(currentClass.id);
-    } catch (e) { toastErr(e.message); }
-}
 
-async function deleteClass() {
-    if (!await showConfirm("반 삭제", `'${currentClass.name}' 반을 삭제할까요?\n학생·배정·기록이 함께 삭제됩니다.`, { okText: "삭제", danger: true })) return;
-    try {
-        await api(`/api/classes/${currentClass.id}`, { method: "DELETE" });
-        navTo("classes");
-    } catch (e) { toastErr(e.message); }
-}
 
-function copyJoinCode() {
-    navigator.clipboard?.writeText(currentClass.join_code).then(
-        () => toast("참여 코드를 복사했어요!", "success"), () => {});
-}
-function copyTakeLink() {
-    const link = document.getElementById("ct-take-link").value;
-    navigator.clipboard?.writeText(link).then(
-        () => toast("학생용 응시 링크를 복사했어요!", "success"), () => {});
-}
 
-// ---- 학생 반 상세 ----
-async function openStudentClass(cid) {
-    try {
-        const data = await api(`/api/classes/joined/${cid}`);
-        currentClass = { id: cid, name: data.class.name, join_code: "" };
-        document.getElementById("cs-name").textContent = data.class.name;
-        document.getElementById("cs-teacher").textContent = `${data.class.teacher_name} 선생님`;
-        document.getElementById("cs-wordbooks").innerHTML = (data.wordbooks || []).length
-            ? data.wordbooks.map(w => `
-                <div class="item-card" onclick="studyAssignedWordbook(${cid}, ${w.wordbook_id})">
-                    <div class="ic-title">${esc(w.wordbook_name)}</div>
-                    <div class="ic-desc">${langLabel(w.language)} · ${w.word_count}단어</div>
-                    <div class="ic-meta"><span class="badge accent">▶ 학습하기</span></div>
-                </div>`).join("")
-            : `<div class="empty-state">아직 배정된 단어장이 없어요.</div>`;
-        document.getElementById("cs-assignments").innerHTML = data.assignments.length
-            ? data.assignments.map(a => `
-                <div class="item-card" onclick="openExam(${a.exam_id})">
-                    <div class="ic-title">${esc(a.exam_name)}</div>
-                    <div class="ic-desc">${esc(a.format_label)} · ${a.question_count}문항</div>
-                    <div class="ic-meta">
-                        ${a.my_attempts ? `<span class="badge green">내 최고 ${a.my_best}%</span>`
-                                        : `<span class="badge gray">미응시</span>`}
-                    </div>
-                </div>`).join("")
-            : `<div class="empty-state">아직 배정된 시험지가 없어요.</div>`;
-        showView("view-class-student");
-    } catch (e) { toastErr(e.message); }
-}
 
-// 학생: 배정된 단어장 학습
-async function studyAssignedWordbook(cid, wid) {
-    try {
-        const d = await api(`/api/classes/joined/${cid}/wordbook/${wid}/words`);
-        if (!d.words || !d.words.length) return toastErr("이 단어장에 단어가 없어요.");
-        startFlashcardsWith(d.words, "assigned");
-    } catch (e) { toastErr(e.message); }
-}
 
-async function leaveClass() {
-    if (!await showConfirm("반 나가기", `'${currentClass.name}' 반에서 나갈까요?`, { okText: "나가기", danger: true })) return;
-    try {
-        await api(`/api/classes/${currentClass.id}/leave`, { method: "POST" });
-        navTo("classes");
-    } catch (e) { toastErr(e.message); }
-}
 
-// ---- 학생 상세 (선생님용 모달) ----
-async function openStudentDetail(cid, sid) {
-    try {
-        const d = await api(`/api/classes/${cid}/students/${sid}`);
-        const st = d.student, sm = d.summary;
-        document.getElementById("sd-avatar").innerHTML = st.avatar ? `<img src="${st.avatar}" alt="">` : "🙂";
-        document.getElementById("sd-name").textContent = st.nickname || st.email;
-        document.getElementById("sd-email").textContent = st.sid ? `학생 ID · ${st.sid}` : st.email;
-        const kpi = (num, label, cls = "") =>
-            `<div class="sd-kpi ${cls}"><div class="sd-kpi-num">${num}</div><div class="sd-kpi-label">${label}</div></div>`;
-        const examRows = d.exams.length ? d.exams.map(e => {
-            const done = e.best !== null;
-            const cls = !done ? "" : (e.best >= 80 ? "hi" : (e.best >= 50 ? "mid" : "lo"));
-            const badge = done ? `<span class="ri-score ${cls}">${e.best}%</span>`
-                               : `<span class="badge gray">미응시</span>`;
-            const hist = e.attempts.length ? `<div class="sd-attempts">${e.attempts.map(a =>
-                `<div class="sd-att"><span>${fmtDate(a.created_at)}</span><span>${a.score}% · ${a.correct}/${a.total} · ${fmtTime(a.time_taken)}</span></div>`
-            ).join("")}</div>` : "";
-            return `<div class="sd-exam">
-                <div class="sd-exam-head">
-                    <div><b>${esc(e.exam_name)}</b><span class="muted"> · ${esc(e.format_label)} · ${e.question_count}문항</span></div>
-                    ${badge}
-                </div>${hist}
-            </div>`;
-        }).join("") : `<div class="empty-state">아직 배정된 시험지가 없어요.</div>`;
-        document.getElementById("sd-body").innerHTML = `
-            <div class="sd-kpi-row">
-                ${kpi(sm.completed + "/" + sm.assigned, "완료한 과제")}
-                ${kpi(sm.attempts, "총 응시")}
-                ${kpi(sm.avg + "%", "평균 점수", "accent")}
-                ${kpi(sm.best + "%", "최고 점수", "accent")}
-            </div>
-            <div class="chart-card" style="margin:14px 0">
-                <h3 style="margin:0 0 10px">📈 점수 추이</h3>
-                <div class="trend-chart">${trendChartHTML(d.trend)}</div>
-            </div>
-            <h3 style="margin:6px 0 10px">📝 과제별 응시 현황</h3>
-            <div class="sd-exams">${examRows}</div>`;
-        document.getElementById("student-modal").classList.remove("hidden");
-    } catch (e) { toastErr(e.message); }
-}
-function closeStudentDetail(e) {
-    if (e && e.target !== e.currentTarget) return;
-    document.getElementById("student-modal").classList.add("hidden");
-}
 
 // ============================================================
 // 알림
 // ============================================================
-let _notifTimer = null;
-async function loadNotifications() {
-    try {
-        const { notifications, unread } = await api("/api/notifications");
-        window._notifs = notifications;
-        const badge = document.getElementById("notif-badge");
-        badge.textContent = unread > 9 ? "9+" : unread;
-        badge.classList.toggle("hidden", unread === 0);
-        renderNotif(notifications);
-    } catch (e) {}
-}
-function renderNotif(list) {
-    const el = document.getElementById("notif-list");
-    if (!list || !list.length) {
-        el.innerHTML = `<div class="notif-empty">새 알림이 없어요.</div>`;
-        return;
-    }
-    el.innerHTML = list.map(n => `
-        <div class="notif-item ${n.is_read ? "" : "unread"}">
-            <div class="notif-title">${esc(n.title)}</div>
-            ${n.body ? `<div class="notif-body">${esc(n.body)}</div>` : ""}
-            <div class="notif-date">${fmtDate(n.created_at)}</div>
-        </div>`).join("");
-}
-async function toggleNotif(e) {
-    if (e) e.stopPropagation();
-    const panel = document.getElementById("notif-panel");
-    const willShow = panel.classList.contains("hidden");
-    panel.classList.toggle("hidden", !willShow);
-    if (willShow) {
-        await loadNotifications();
-        // 열면 읽음 처리
-        try { await api("/api/notifications/read", { method: "POST" }); } catch (_) {}
-        document.getElementById("notif-badge").classList.add("hidden");
-    }
-}
-async function clearNotif() {
-    try {
-        await api("/api/notifications", { method: "DELETE" });
-        window._notifs = [];
-        renderNotif([]);
-        document.getElementById("notif-badge").classList.add("hidden");
-    } catch (e) { toastErr(e.message); }
-}
-// 바깥 클릭 시 알림 패널 / 프로필 메뉴 닫기
+// 바깥 클릭 시 프로필 메뉴 닫기
 document.addEventListener("click", e => {
-    const wrap = document.querySelector(".notif-wrap");
-    const panel = document.getElementById("notif-panel");
-    if (panel && !panel.classList.contains("hidden") && wrap && !wrap.contains(e.target)) {
-        panel.classList.add("hidden");
-    }
     const pwrap = document.querySelector(".side-profile-wrap");
     const pmenu = document.getElementById("profile-menu");
     if (pmenu && !pmenu.classList.contains("hidden") && pwrap && !pwrap.contains(e.target)) {
@@ -2389,7 +1206,6 @@ async function startGenerate() {
         prog.log("🚨 " + e.message);
         document.getElementById("gen-progress").classList.add("hidden");
         toastErr("생성 실패: " + e.message);
-        if (e.message.includes("크레딧")) openProfile();
     }
 }
 
@@ -2641,12 +1457,6 @@ async function openPdfModal(id) {
         document.getElementById("pdf-answerkey").checked = true;
         document.getElementById("pdf-header").checked = true;
         document.getElementById("pdf-school").checked = true;
-        // 무료 등급: 옵션 컨트롤만 잠그고, 제목 입력·다운로드는 사용 가능
-        const custom = !!CURRENT_USER?.limits?.pdf_custom;
-        document.getElementById("pdf-lock").classList.toggle("hidden", custom);
-        document.querySelectorAll("#pdf-modal .pdf-seg button, #pdf-spacing, #pdf-answerkey, #pdf-header, #pdf-school")
-            .forEach(el => { el.disabled = !custom; });
-        document.querySelector(".pdf-options").classList.remove("pdf-locked");
         document.getElementById("pdf-modal").classList.remove("hidden");
         renderPdfPreview();
     } catch (e) { toastErr(e.message); }
@@ -2779,8 +1589,7 @@ const I18N = {
     "nav.dashboard": { ko: "대시보드", en: "Dashboard", zh: "仪表盘", ja: "ダッシュボード" },
     "nav.wordbooks": { ko: "내 단어장", en: "My Wordbooks", zh: "我的单词本", ja: "単語帳" },
     "nav.exams": { ko: "내 시험지", en: "My Exams", zh: "我的试卷", ja: "テスト" },
-    "nav.planner": { ko: "플래너", en: "Planner", zh: "计划", ja: "プランナー" },
-    "nav.classes": { ko: "반", en: "Classes", zh: "班级", ja: "クラス" },
+    "nav.planner": { ko: "캘린더", en: "Calendar", zh: "日历", ja: "カレンダー" },
     "nav.usage": { ko: "사용량", en: "Usage", zh: "用量", ja: "使用量" },
     "nav.settings": { ko: "설정", en: "Settings", zh: "设置", ja: "設定" },
     "dash.today": { ko: "오늘 할 일", en: "Today's Tasks", zh: "今日任务", ja: "今日のタスク" },
@@ -2840,7 +1649,6 @@ function openProfile() {
     const pref = document.getElementById("pref-explain-lang");
     if (pref) pref.value = u.explain_lang || "ko";
     renderExplainLangPicker(u.explain_lang || "ko");
-    renderTierPanel();
     document.getElementById("profile-modal").classList.remove("hidden");
 }
 
@@ -2879,126 +1687,11 @@ function closeProfile(e) {
     document.getElementById("profile-modal").classList.add("hidden");
 }
 
-const TIER_INFO = {
-    basic:   { label: "무료",    price: "₩0",        blurb: "단어장 3개 · AI 크레딧 50/월", feats: ["단어장 3개 · 시험지 10개", "AI 크레딧 50/월", "1회 추출 10p · 문제 15문항", "PDF (워터마크)", "반 참여 가능"] },
-    premium: { label: "프리미엄", price: "₩4,900/월",  sub: "연 ₩39,900 (월 ₩3,325)", blurb: "무제한 단어장 · 크레딧 600/월", feats: ["무제한 단어장·시험지", "AI 크레딧 600/월", "추출 50p · 문제 50문항", "PDF 커스텀 · 워터마크 제거", "AI 예문 첨삭 · 망각곡선 플래너"] },
-    teacher: { label: "선생님 Basic", price: "₩12,900/월", sub: "연 ₩99,000 (월 ₩8,250)", blurb: "반 5개·40명 · 크레딧 2,500/월", feats: ["프리미엄 모든 기능", "AI 크레딧 2,500/월", "반 5개 · 반당 40명", "학생 대시보드 · 과제 배정", "추출 100p · 문제 100문항"] },
-    teacher_pro: { label: "선생님 Pro", price: "₩29,900/월", sub: "연 ₩299,000 (월 ₩24,900)", blurb: "반 20개·60명 · 크레딧 6,000/월", feats: ["선생님 Basic 모든 기능", "AI 크레딧 6,000/월", "반 20개 · 반당 60명", "1회 추출 200p", "문의 우선 응대 · 신규 기능 우선 제공"] },
-};
 
-// 애드온(일회성 구매) 카탈로그 — 백엔드 ADDONS와 동일
-const ADDON_INFO = {
-    credits:  { label: "AI 크레딧 팩", unit: "500 크레딧", price: "₩4,900", icon: "⚡" },
-    classes:  { label: "반 슬롯",     unit: "반 +1",      price: "₩3,900", icon: "🏫" },
-    students: { label: "학생 슬롯",   unit: "학생 +10",   price: "₩3,900", icon: "👥" },
-};
 
-// 사이드바 하단: 사용량(작게) + 요금제(등급·혜택·업그레이드)
-function renderSideMeta() {
-    const u = CURRENT_USER;
-    if (!u) return;
-    const lim = u.limits || {}, use = u.usage || {}, tier = u.tier || "basic";
-    const info = TIER_INFO[tier] || TIER_INFO.basic;
-    const bar = (label, used, max) => {
-        const unlimited = (max || 0) >= 9999;
-        const pct = unlimited ? 8 : Math.min(100, Math.round((used || 0) / (max || 1) * 100));
-        return `<div class="su-item">
-            <div class="su-label"><span>${label}</span><span>${used || 0}<i>/${unlimited ? "∞" : max}</i></span></div>
-            <div class="su-track"><div class="su-fill" style="width:${pct}%"></div></div>
-        </div>`;
-    };
-    const su = document.getElementById("side-usage");
-    if (su) su.innerHTML =
-        bar("단어장", use.wordbooks, lim.wordbooks) +
-        bar("시험지", use.exams, lim.exams) +
-        bar("AI 크레딧", use.ai_credits || 0, lim.ai_credits || 50);
 
-    const st = document.getElementById("side-tier");
-    if (st) {
-        // 각 라인의 최상위 등급(프리미엄·선생님 Pro)은 업그레이드 버튼 숨김
-        const hideUpgrade = tier === "premium" || tier === "teacher_pro";
-        st.innerHTML = `
-            <div class="st-info">
-                <span class="tier-badge ${tier}">${info.label}</span>
-                <span class="st-blurb">${info.blurb}</span>
-            </div>
-            ${hideUpgrade ? "" : `<button class="st-up" onclick="openProfile()">업그레이드</button>`}`;
-    }
-}
 
-// 사용량 모달 (메뉴바 진입)
-function openUsage() { renderUsage(); document.getElementById("usage-modal").classList.remove("hidden"); }
-function closeUsage(e) {
-    if (e && e.target !== e.currentTarget) return;
-    document.getElementById("usage-modal").classList.add("hidden");
-}
-function renderUsage() {
-    const u = CURRENT_USER;
-    const badge = document.getElementById("profile-tier");
-    if (badge) { badge.textContent = TIER_INFO[u.tier]?.label || "무료"; badge.className = "tier-badge " + (u.tier || "basic"); }
-    const lim = u.limits, use = u.usage;
-    const bar = (label, used, max, unit = "") => {
-        const unlimited = max >= 9999;
-        const pct = unlimited ? 6 : Math.min(100, Math.round(used / max * 100));
-        return `<div class="usage-item">
-            <div class="usage-label"><span>${label}</span><span>${used} / ${unlimited ? "무제한" : max}${unit}</span></div>
-            <div class="usage-track"><div class="usage-fill" style="width:${pct}%"></div></div>
-        </div>`;
-    };
-    const box = document.getElementById("usage-box");
-    if (box) box.innerHTML =
-        bar("단어장", use.wordbooks, lim.wordbooks) + bar("시험지", use.exams, lim.exams) +
-        bar("AI 크레딧 (이번 달)", use.ai_credits || 0, lim.ai_credits || 50);
-}
 
-function renderTierPanel() {
-    const u = CURRENT_USER;
-    // 요금제 카드 (선생님 Basic/Pro 세분화)
-    document.getElementById("tier-cards").innerHTML = ["basic", "premium", "teacher", "teacher_pro"].map(t => {
-        const info = TIER_INFO[t], cur = u.tier === t;
-        const cta = cur ? `<div class="tc2-current">✓ 현재 등급</div>`
-            : `<button class="tc2-btn ${t}" onclick="setTier('${t}')">${t === "basic" ? "기본으로 전환" : "이 등급으로 전환"}</button>`;
-        return `<div class="tier-card2 ${t} ${cur ? "current" : ""}">
-            <div class="tc2-head"><span class="tc2-name">${info.label}</span><span class="tc2-price">${info.price}</span>
-                ${info.sub ? `<span class="tc2-sub">${info.sub}</span>` : ""}</div>
-            <ul class="tc2-feats">${info.feats.map(f => `<li>${f}</li>`).join("")}</ul>
-            ${cta}
-        </div>`;
-    }).join("");
-    renderAddons();
-}
-
-// 애드온(일회성 구매) 렌더 + 구매
-function renderAddons() {
-    const box = document.getElementById("addon-cards");
-    if (!box) return;
-    const lim = CURRENT_USER?.limits || {};
-    const isTeacher = !!lim.can_create_class;
-    const owned = { credits: lim.addon_credits || 0, classes: lim.addon_classes || 0, students: lim.addon_students || 0 };
-    // 반·학생 슬롯은 선생님 계정에게만 노출
-    const kinds = isTeacher ? ["credits", "classes", "students"] : ["credits"];
-    box.innerHTML = kinds.map(k => ADDON_INFO[k] && [k, ADDON_INFO[k]]).filter(Boolean).map(([k, a]) => `
-        <div class="addon-card">
-            <div class="addon-ico">${a.icon}</div>
-            <div class="addon-body">
-                <div class="addon-name">${a.label} <span class="addon-unit">${a.unit}</span></div>
-                <div class="addon-owned">${owned[k] ? `보유 +${owned[k]}` : "미보유"}</div>
-            </div>
-            <button class="tc2-btn premium" onclick="buyAddon('${k}')">${a.price} 구매</button>
-        </div>`).join("");
-}
-
-async function buyAddon(kind) {
-    const a = ADDON_INFO[kind];
-    if (!await showConfirm("추가 구매 (데모)", `${a.label} (${a.unit})을(를) ${a.price}에 구매할까요?\n\n※ 데모 — 실제 결제 없이 한도가 즉시 늘어납니다.`, { okText: "구매" })) return;
-    try {
-        const r = await api("/api/addons/buy", { method: "POST", body: { kind } });
-        CURRENT_USER.limits = r.limits;
-        renderUserChip();
-        renderAddons();
-        toast(`${a.label} 구매 완료! 한도가 늘어났어요.`, "success");
-    } catch (e) { toastErr(e.message); }
-}
 
 async function saveProfile() {
     const nickname = document.getElementById("profile-nickname").value.trim();
@@ -3170,17 +1863,6 @@ async function resetStats() {
     } catch (e) { toastErr(e.message); }
 }
 
-async function setTier(tier) {
-    try {
-        await api("/api/tier", { method: "POST", body: { tier } });
-        CURRENT_USER = await api("/api/me");   // 한도까지 최신화
-        renderUserChip();
-        applyRoleNav();                        // 선생님↔일반 전환 시 플래너·반 메뉴 갱신
-        navTo("dashboard");                    // 대시보드(선생님/개인) 다시 렌더
-        renderTierPanel();
-        toast(`${TIER_INFO[tier]?.label || tier} 등급으로 전환됐어요!`, "success");
-    } catch (e) { toast(e.message, "error"); }
-}
 
 // ---- 비밀번호 변경 (설정) ----
 function checkPwChangeRules() {

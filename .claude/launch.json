@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "vocashot",
-      "runtimeExecutable": "/Users/yeseonglee/Desktop/Computer Science/VocaShot - Claude/venv/bin/python",
+      "runtimeExecutable": "./venv/bin/python",
       "runtimeArgs": ["-m", "uvicorn", "app:app", "--port", "8000"],
       "port": 8000,
       "autoPort": false

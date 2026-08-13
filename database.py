@@ -119,26 +119,6 @@ CREATE TABLE IF NOT EXISTS report_shares (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- 단어별 숙련도 (SRS 복습 스케줄 + 취약 단어 분석의 토대)
--- 시험/복습에서 각 단어를 맞고 틀린 이력을 누적하고, 다음 복습 시점을 관리한다.
-CREATE TABLE IF NOT EXISTS word_mastery (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id       INTEGER NOT NULL,
-    wordbook_id   INTEGER NOT NULL,
-    word          TEXT NOT NULL,        -- 대상 영어 단어
-    meaning       TEXT DEFAULT '',      -- 복습 출제용으로 캐시
-    correct_count INTEGER NOT NULL DEFAULT 0,
-    wrong_count   INTEGER NOT NULL DEFAULT 0,
-    streak        INTEGER NOT NULL DEFAULT 0,   -- 연속 정답 수 (복습 간격 결정)
-    interval_days INTEGER NOT NULL DEFAULT 0,   -- 현재 복습 간격
-    last_result   INTEGER,              -- 마지막 결과 1/0
-    last_review   TEXT,
-    next_review   TEXT,                 -- 다음 복습 예정일 (ISO date)
-    UNIQUE(user_id, wordbook_id, word),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (wordbook_id) REFERENCES wordbooks(id) ON DELETE CASCADE
-);
-
 -- 응시 기록 (한 시험지를 여러 번 볼 수 있고, 모든 기록 보존)
 CREATE TABLE IF NOT EXISTS attempts (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -262,16 +242,6 @@ CREATE TABLE IF NOT EXISTS ai_usage (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- 캘린더 사용자 커스텀 일정/메모 (특정 날짜에 개인 할 일 추가)
-CREATE TABLE IF NOT EXISTS calendar_notes (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id    INTEGER NOT NULL,
-    date       TEXT NOT NULL,          -- 'YYYY-MM-DD'
-    text       TEXT NOT NULL,
-    done       INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
 """
 
 

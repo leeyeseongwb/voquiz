@@ -28,15 +28,6 @@
             <div class="test-hint">🧪 테스트 계정: <b>test@vocashot.com</b> / <b>test1234</b></div>
         </div>
 
-        <!-- 학생 응시 게이트 (선생님이 공유한 링크로 접속 · 로그인 불필요) -->
-        <div id="pane-take" class="auth-pane hidden">
-            <p class="auth-tagline" style="margin:-10px 0 18px">📝 <b id="take-class-name">과제</b><br>이름과 선생님이 준 학생 ID를 입력하세요.</p>
-            <input type="text" id="take-name" placeholder="이름" autocomplete="off">
-            <input type="text" id="take-sid" placeholder="학생 ID (숫자)" inputmode="numeric" autocomplete="off">
-            <button class="btn-primary" onclick="doTakeEnter()">시작하기</button>
-            <div class="auth-switch">선생님/일반 회원이신가요? <a onclick="showAuthPane('login')">로그인</a></div>
-        </div>
-
         <!-- 회원가입 -->
         <div id="pane-signup" class="auth-pane hidden">
             <input type="email" id="signup-email" placeholder="이메일" autocomplete="username">
@@ -47,19 +38,6 @@
                 <li data-rule="num">숫자 포함</li>
                 <li data-rule="special">특수문자 포함</li>
             </ul>
-            <div class="signup-type">
-                <label class="type-opt">
-                    <input type="radio" name="signupTier" value="basic" checked onchange="onSignupTierChange()">
-                    <span>🙋 일반 회원</span><small>무료</small>
-                </label>
-                <label class="type-opt">
-                    <input type="radio" name="signupTier" value="teacher" onchange="onSignupTierChange()">
-                    <span>👨‍🏫 선생님 회원</span><small>₩12,900/월</small>
-                </label>
-            </div>
-            <div id="teacher-note" class="teacher-note hidden">
-                선생님 회원은 반을 개설하고 학생을 관리할 수 있어요.<br>(유료 · 데모에서는 결제 없이 가입됩니다)
-            </div>
             <button class="btn-primary" onclick="doSignup()">인증 코드 받기</button>
             <div class="auth-switch">이미 계정이 있으신가요? <a onclick="showAuthPane('login')">로그인</a></div>
         </div>
@@ -93,7 +71,6 @@
                 <span id="topbar-avatar" class="avatar-sm">🙂</span>
                 <span class="side-profile-info">
                     <span id="topbar-nick" class="nick"></span>
-                    <span id="topbar-tier" class="tier-badge basic">기본</span>
                 </span>
                 <span class="side-profile-caret">▾</span>
             </button>
@@ -108,33 +85,18 @@
             <button class="side-link active" data-nav="dashboard" onclick="navTo('dashboard')"><span class="side-ico" data-icon="home"></span> <span data-i18n="nav.dashboard">대시보드</span></button>
             <button class="side-link" data-nav="wordbooks" onclick="navTo('wordbooks')"><span class="side-ico" data-icon="book"></span> <span data-i18n="nav.wordbooks">내 단어장</span></button>
             <button class="side-link" data-nav="exams" onclick="navTo('exams')"><span class="side-ico" data-icon="doc"></span> <span data-i18n="nav.exams">내 시험지</span></button>
-            <button class="side-link" data-nav="calendar" onclick="navTo('calendar')"><span class="side-ico" data-icon="calendar"></span> <span data-i18n="nav.planner">플래너</span></button>
-            <button class="side-link" data-nav="classes" onclick="navTo('classes')"><span class="side-ico" data-icon="users"></span> <span data-i18n="nav.classes">반</span></button>
         </nav>
 
-        <!-- 하단: 사용량 · 요금제 · 설정 -->
+        <!-- 하단: 설정 -->
         <div class="side-bottom">
-            <div id="side-usage" class="side-usage"></div>
-            <div id="side-tier" class="side-tier"></div>
-            <div class="side-sep"></div>
             <button class="side-link" onclick="openProfile()"><span class="side-ico" data-icon="gear"></span> <span data-i18n="nav.settings">설정</span></button>
         </div>
     </aside>
 
     <main class="container main-area">
 
-        <!-- 상단 스트립: 알림 · 다크모드 -->
+        <!-- 상단 스트립: 다크모드 -->
         <div class="topstrip">
-            <div class="notif-wrap">
-                <button id="notif-btn" class="side-icon-btn sm" onclick="toggleNotif(event)" title="알림"><span data-icon="bell"></span><span id="notif-badge" class="notif-badge hidden">0</span></button>
-                <div id="notif-panel" class="notif-panel hidden">
-                    <div class="notif-head">
-                        <span>알림</span>
-                        <button class="btn-mini" onclick="clearNotif()">모두 지우기</button>
-                    </div>
-                    <div id="notif-list" class="notif-list"></div>
-                </div>
-            </div>
             <button id="theme-toggle" class="side-icon-btn sm theme-toggle-btn" onclick="toggleTheme()" title="테마 전환"></button>
         </div>
 
@@ -145,14 +107,6 @@
             <div class="dash-stats">
                 <h1 id="dash-greeting" class="dash-greeting">안녕하세요 👋</h1>
 
-                <!-- 오늘 할 일 (통계 위에) -->
-                <div class="card today-card">
-                    <div class="panel-head">
-                        <h2 data-i18n="dash.today">오늘 할 일</h2>
-                        <span class="today-date hint-text"></span>
-                    </div>
-                    <div class="today-list"></div>
-                </div>
 
                 <!-- 공유 (학부모 등에게 진도 리포트 공유) -->
                 <div class="card share-card">
@@ -176,9 +130,6 @@
                     </div>
                 </div>
 
-                <!-- 선생님 대시보드 (선생님 회원에게만) -->
-                <div id="dash-teacher" class="hidden"></div>
-
                 <!-- 개인 학습 통계 (학생/일반) -->
                 <div id="dash-personal">
                 <div class="kpi-row">
@@ -200,23 +151,6 @@
                     </div>
                 </div>
 
-                <!-- 취약 단어 분석 -->
-                <div class="stats-lower" style="margin-top:16px">
-                    <div class="chart-card">
-                        <h3>단어 숙련도</h3>
-                        <div id="mastery-box" class="mastery-box"></div>
-                        <h4 class="mini-list-title">학습 중인 단어</h4>
-                        <div id="learning-list" class="mini-word-list"></div>
-                    </div>
-                    <div class="recent-card">
-                        <div class="chart-head"><h3>취약 단어</h3>
-                            <div style="display:flex; gap:6px">
-                                <button class="btn-mini accent" id="weak-study-btn" onclick="startWeakStudy()">🔁 복습하기</button>
-                                <button class="btn-mini" id="weak-more-btn" onclick="openWeakModal()">더보기</button>
-                            </div></div>
-                        <div id="weak-list" class="weak-list"></div>
-                    </div>
-                </div>
                 </div><!-- /dash-personal -->
             </div>
 
@@ -236,66 +170,6 @@
                 <div id="exam-list" class="card-grid"></div>
             </div>
 
-            <div id="tab-calendar" class="tab-panel hidden">
-                <!-- 오늘 할 일 (맨 위: 복습 리마인더 등) -->
-                <div class="card today-card">
-                    <div class="panel-head">
-                        <h2 data-i18n="dash.today">오늘 할 일</h2>
-                        <span class="today-date hint-text"></span>
-                    </div>
-                    <div class="today-list"></div>
-                </div>
-
-                <!-- 내 학습 플랜 (리마인더 바로 아래) -->
-                <div class="card">
-                    <div class="panel-head">
-                        <h2>내 학습 플랜</h2>
-                        <button class="btn-accent" onclick="startPlanner()">＋ AI 학습 플래너</button>
-                    </div>
-                    <div id="plan-box"></div>
-                </div>
-
-                <!-- 캘린더 -->
-                <div class="card">
-                    <div class="cal-header">
-                        <button class="btn-mini" onclick="calMove(-1)">‹ 이전</button>
-                        <h3 id="cal-title" style="margin:0">2026.07</h3>
-                        <button class="btn-mini" onclick="calMove(1)">다음 ›</button>
-                    </div>
-                    <div class="cal-weekdays">
-                        <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
-                    </div>
-                    <div id="cal-grid" class="cal-grid"></div>
-                    <div class="cal-legend">
-                        <span><i class="cal-box-legend"></i> 학습 완료</span>
-                        <span><i class="cal-dot plan-new"></i> 새 단어(플랜)</span>
-                        <span><i class="cal-dot review"></i> 복습 예정</span>
-                        <span><i class="cal-dot note"></i> 내 일정</span>
-                    </div>
-                    <p class="muted" style="margin-top:10px">날짜를 클릭하면 팝업이 열려요. 일정 칩은 드래그해서 다른 날짜로 옮길 수 있어요.</p>
-                </div>
-            </div>
-
-            <div id="tab-classes" class="tab-panel hidden">
-                <!-- 선생님 회원에게만 표시 (loadClasses 에서 토글) -->
-                <div class="class-section hidden" id="teacher-section">
-                    <div class="panel-head">
-                        <h3>👨‍🏫 내가 만든 반 <span class="hint-text">(선생님)</span></h3>
-                        <button class="btn-accent" id="btn-create-class" onclick="createClass()">＋ 반 만들기</button>
-                    </div>
-                    <div id="teacher-classes" class="card-grid"></div>
-                </div>
-                <div class="class-section" id="student-section" style="margin-top:28px">
-                    <div class="panel-head">
-                        <h3>🎒 참여한 반 <span class="hint-text">(학생)</span></h3>
-                        <div class="join-row">
-                            <input type="text" id="join-code" placeholder="참여 코드 6자리" maxlength="6">
-                            <button class="btn-primary" style="width:auto" onclick="joinClass()">참여</button>
-                        </div>
-                    </div>
-                    <div id="student-classes" class="card-grid"></div>
-                </div>
-            </div>
 
         </section>
 
@@ -472,76 +346,6 @@
             </div>
         </section>
 
-        <!-- AI 학습 플래너 -->
-        <section id="view-planner" class="hidden">
-            <button class="back-btn" onclick="navTo('calendar')">← 플래너</button>
-            <div class="card">
-                <h2>🧭 AI 학습 플래너</h2>
-                <p class="sub">에빙하우스 망각곡선에 맞춰 “매일 뭘 공부할지”를 AI가 계획해줘요.</p>
-
-                <div class="config-block">
-                    <label class="block-label">1. 공부할 단어장 선택 <span class="hint-text">(여러 개 가능)</span></label>
-                    <div id="pl-wordbooks" class="ec-wb-grid"></div>
-                    <div class="sel-count">총 <b id="pl-word-count">0</b>개 단어</div>
-                </div>
-
-                <div class="config-block">
-                    <label class="block-label">2. 목표 <span class="hint-text">(자유롭게 적어주세요)</span></label>
-                    <input type="text" id="pl-goal" class="settings-input" placeholder="예: 3주 안에 토익 단어 정복 / 시험 전까지 매일 조금씩">
-                </div>
-
-                <div class="config-block plan-params">
-                    <div>
-                        <label class="block-label">기간 <span class="hint-text">(선택)</span></label>
-                        <div class="period-row">
-                            <input type="number" id="pl-period" class="settings-input" placeholder="예: 3" min="1" max="365" style="width:90px">
-                            <select id="pl-period-unit" class="settings-input" style="width:auto">
-                                <option value="7">주</option>
-                                <option value="1">일</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block-label">하루 새 단어 <span class="hint-text">(비우면 AI 추천)</span></label>
-                        <input type="number" id="pl-daily" class="settings-input" placeholder="AI 추천" min="1" max="60" style="width:120px">
-                    </div>
-                </div>
-
-                <div class="config-block">
-                    <label class="block-label">공부 안 하는 요일 <span class="hint-text">(체크한 요일은 계획에서 제외돼요)</span></label>
-                    <div id="pl-exclude" class="weekday-row">
-                        <label class="wd-chip"><input type="checkbox" value="0" onchange="toggleWd(this)"><span>일</span></label>
-                        <label class="wd-chip"><input type="checkbox" value="1" onchange="toggleWd(this)"><span>월</span></label>
-                        <label class="wd-chip"><input type="checkbox" value="2" onchange="toggleWd(this)"><span>화</span></label>
-                        <label class="wd-chip"><input type="checkbox" value="3" onchange="toggleWd(this)"><span>수</span></label>
-                        <label class="wd-chip"><input type="checkbox" value="4" onchange="toggleWd(this)"><span>목</span></label>
-                        <label class="wd-chip"><input type="checkbox" value="5" onchange="toggleWd(this)"><span>금</span></label>
-                        <label class="wd-chip"><input type="checkbox" value="6" onchange="toggleWd(this)"><span>토</span></label>
-                    </div>
-                </div>
-
-                <button class="btn-accent" onclick="planPreview()">🤖 AI 플랜 생성</button>
-
-                <!-- 미리보기 -->
-                <div id="pl-preview" class="hidden">
-                    <div class="plan-ai-summary" id="pl-summary"></div>
-                    <div class="plan-stat-row" id="pl-stats"></div>
-
-                    <h3>📉 예상 망각곡선 &amp; 복습 시점</h3>
-                    <div id="pl-curve" class="plan-curve"></div>
-                    <p class="muted" id="pl-intervals"></p>
-
-                    <h3>🗓 계획 미리보기</h3>
-                    <div id="pl-days" class="plan-days"></div>
-
-                    <div class="save-form" style="margin-top:18px">
-                        <input type="text" id="pl-name" placeholder="플랜 이름 (예: 여름방학 어휘 마스터)">
-                        <button class="btn-accent" onclick="savePlan()">✅ 이 플랜으로 시작</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <!-- 시험 응시 -->
         <section id="view-take" class="hidden">
             <button class="back-btn" onclick="goDashboard()">← 대시보드</button>
@@ -611,30 +415,6 @@
             </div>
         </section>
 
-        <!-- SRS 복습 세션 -->
-        <section id="view-review" class="hidden">
-            <button class="back-btn" onclick="goDashboard()">← 대시보드</button>
-            <div class="card">
-                <div class="panel-head">
-                    <div>
-                        <h2>🔁 오늘의 복습</h2>
-                        <p class="sub">틀리거나 복습할 때가 된 단어예요. 뜻을 골라보세요.</p>
-                    </div>
-                    <span class="badge" id="review-progress">0 / 0</span>
-                </div>
-                <div id="review-questions"></div>
-                <button class="btn-primary" style="margin-top:20px" onclick="submitReview()">🏁 복습 완료</button>
-            </div>
-
-            <!-- 복습 결과 -->
-            <div id="review-result" class="card center hidden">
-                <h2>복습 완료! 🎉</h2>
-                <div class="score-circle" id="review-score">0%</div>
-                <p class="score-sub">정답 <b id="review-correct">0</b> / <span id="review-total">0</span></p>
-                <div id="review-detail" class="rep-detail"></div>
-                <button class="btn-accent" style="margin-top:20px; width:auto" onclick="goDashboard()">대시보드로</button>
-            </div>
-        </section>
 
         <!-- 플래시카드 학습 -->
         <section id="view-flashcards" class="hidden">
@@ -662,90 +442,8 @@
                     <div id="fc-practice-actions">
                         <button class="btn-accent" style="width:auto" onclick="checkSentence()">🤖 AI 첨삭받기</button>
                     </div>
-                    <div id="fc-locked" class="fc-locked hidden">
-                        🔒 AI 예문 첨삭은 <b>프리미엄/선생님 회원</b> 기능이에요.
-                        <a onclick="openProfile()">업그레이드</a>
-                    </div>
                     <div id="fc-feedback" class="fc-feedback hidden"></div>
                 </div>
-            </div>
-        </section>
-
-        <!-- 반 상세 (선생님) -->
-        <section id="view-class-teacher" class="hidden">
-            <button class="back-btn" onclick="navTo('dashboard')">← 대시보드</button>
-            <div class="card">
-                <div class="panel-head">
-                    <div>
-                        <h2 id="ct-name"></h2>
-                        <p class="sub"><span id="ct-student-count"></span></p>
-                    </div>
-                    <button class="btn-ghost danger" onclick="deleteClass()">반 삭제</button>
-                </div>
-                <div class="take-link-box">
-                    <label class="block-label">🔗 학생용 응시 링크 <span class="hint-text">(공유하면 로그인 없이 이름·학생 ID로 응시)</span></label>
-                    <div class="share-box">
-                        <input type="text" id="ct-take-link" readonly onclick="this.select()">
-                        <button class="btn-primary" style="width:auto" onclick="copyTakeLink()">링크 복사</button>
-                    </div>
-                    <p class="muted" style="margin:8px 0 0">⚠️ 학생이 문제를 풀면 <b>채점 시 선생님 크레딧 1</b>이 차감됩니다. (응시 1회당)</p>
-                </div>
-            </div>
-
-            <!-- 학생 관리 (로스터) -->
-            <div class="card">
-                <div class="panel-head">
-                    <h3>👥 학생 <span id="ct-roster-cap" class="hint-text"></span></h3>
-                    <button class="btn-accent btn-sm" onclick="addStudent()">＋ 학생 추가</button>
-                </div>
-                <p class="muted" style="margin:0 0 10px">학생을 추가하면 <b>숫자 학생 ID</b>가 발급돼요. 위 <b>학생용 응시 링크</b>를 공유하고 학생 ID를 알려주면, 학생은 로그인 없이 이름·학생 ID로 응시합니다.</p>
-                <div id="ct-roster" class="roster-cards"></div>
-            </div>
-
-            <!-- 과제 배정: 시험지 · 단어장 -->
-            <div class="card">
-                <h3>📌 과제 배정</h3>
-                <div class="assign-grid">
-                    <div>
-                        <label class="block-label">📝 시험지</label>
-                        <div class="join-row">
-                            <select id="assign-exam" class="assign-select"></select>
-                            <button class="btn-accent" style="width:auto" onclick="assignExam()">배정</button>
-                        </div>
-                        <div id="ct-assignments" class="assign-list"></div>
-                    </div>
-                    <div>
-                        <label class="block-label">📘 단어장</label>
-                        <div class="join-row">
-                            <select id="assign-wordbook" class="assign-select"></select>
-                            <button class="btn-accent" style="width:auto" onclick="assignWordbook()">배정</button>
-                        </div>
-                        <div id="ct-wb-assignments" class="assign-list"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>📊 반 성적 대시보드 <span class="hint-text">(학생을 클릭하면 상세)</span></h3>
-                <div id="ct-dashboard" class="dash-table-wrap"></div>
-            </div>
-        </section>
-
-        <!-- 반 상세 (학생) -->
-        <section id="view-class-student" class="hidden">
-            <button class="back-btn" onclick="navTo('classes')">← 반 목록</button>
-            <div class="card">
-                <div class="panel-head">
-                    <div>
-                        <h2 id="cs-name"></h2>
-                        <p class="sub" id="cs-teacher"></p>
-                    </div>
-                    <button class="btn-ghost danger" onclick="leaveClass()">반 나가기</button>
-                </div>
-                <h3>📘 배정된 단어장</h3>
-                <div id="cs-wordbooks" class="card-grid"></div>
-                <h3 style="margin-top:22px">📝 배정된 시험지</h3>
-                <div id="cs-assignments" class="card-grid"></div>
             </div>
         </section>
 
@@ -871,15 +569,6 @@
                     <input type="hidden" id="pref-explain-lang">
                 </section>
 
-                <section class="settings-block full">
-                    <h3>💎 요금제 변경</h3>
-                    <div id="tier-cards" class="tier-cards"></div>
-                    <h4 style="margin:20px 0 8px">➕ 추가 구매 (애드온)</h4>
-                    <p class="muted" style="margin:0 0 10px">한도가 부족할 때 필요한 만큼만 일회성으로 늘리세요.</p>
-                    <div id="addon-cards" class="addon-cards"></div>
-                    <p class="muted" style="margin-top:10px">※ 데모용입니다. 실제 결제 연동은 추후 제공됩니다.</p>
-                </section>
-
                 <section class="settings-block">
                     <h3>🔑 비밀번호 변경</h3>
                     <input type="password" class="settings-input" id="pw-current" placeholder="현재 비밀번호" autocomplete="current-password">
@@ -987,23 +676,6 @@
     </div>
 </div>
 
-<!-- 학생 상세 모달 (선생님용) -->
-<div id="student-modal" class="modal-overlay hidden" onclick="closeStudentDetail(event)">
-    <div class="modal-card modal-lg" onclick="event.stopPropagation()">
-        <div class="modal-head">
-            <div class="sd-head">
-                <div id="sd-avatar" class="avatar-lg">🙂</div>
-                <div>
-                    <h2 id="sd-name" style="margin:0">학생</h2>
-                    <p class="muted" id="sd-email" style="margin:2px 0 0"></p>
-                </div>
-            </div>
-            <button class="btn-close" onclick="closeStudentDetail()">×</button>
-        </div>
-        <div id="sd-body"></div>
-    </div>
-</div>
-
 <!-- 확인 팝업 모달 (confirm 대체) -->
 <div id="confirm-modal" class="modal-overlay hidden" onclick="cancelConfirmModal(event)">
     <div class="modal-card modal-sm" onclick="event.stopPropagation()">
@@ -1016,23 +688,6 @@
     </div>
 </div>
 
-<!-- 캘린더 날짜 상세 (팝업) -->
-<div id="calday-modal" class="modal-overlay hidden" onclick="closeCalDay(event)">
-    <div class="modal-card" onclick="event.stopPropagation()">
-        <div class="modal-head"><h2 id="calday-title">날짜</h2><button class="btn-close" onclick="closeCalDay()">×</button></div>
-        <div id="calday-body"></div>
-    </div>
-</div>
-
-<!-- 취약 단어 더보기 (팝업) -->
-<div id="weak-modal" class="modal-overlay hidden" onclick="closeWeakModal(event)">
-    <div class="modal-card modal-lg" onclick="event.stopPropagation()">
-        <div class="modal-head"><h2>취약 단어 전체</h2><button class="btn-close" onclick="closeWeakModal()">×</button></div>
-        <p class="muted" style="margin:-8px 0 12px">정확도가 낮거나 자주 틀린 단어예요. 복습으로 정복해보세요.</p>
-        <div id="weak-modal-list" class="weak-modal-list"></div>
-        <button class="btn-accent" style="width:100%; margin-top:14px" onclick="closeWeakModal(); startReview()">🔁 지금 복습하기</button>
-    </div>
-</div>
 
 <!-- 시험지 PDF 커스텀 (미리보기 + 옵션) -->
 <div id="pdf-modal" class="modal-overlay hidden" onclick="closePdfModal(event)">
@@ -1071,8 +726,6 @@
                 <label class="pdf-check"><input type="checkbox" id="pdf-header" checked onchange="pdfSet('header_fields', this.checked)"> 이름/날짜/점수 칸</label>
                 <label class="pdf-check"><input type="checkbox" id="pdf-school" checked onchange="pdfSet('show_school', this.checked)"> 상단 브랜드 문구</label>
 
-                <div id="pdf-lock" class="plan-lock hidden">🔒 PDF 커스텀·워터마크 제거는 프리미엄 기능이에요. 무료 등급은 기본 양식으로 다운로드됩니다. <a onclick="closePdfModal(); openProfile()">업그레이드</a></div>
-
                 <button class="btn-accent" style="width:100%; margin-top:14px" onclick="downloadCustomPdf()">📄 PDF 다운로드</button>
             </div>
             <!-- 미리보기 -->
@@ -1085,15 +738,6 @@
 </div>
 
 <!-- 토스트 알림 -->
-<!-- 사용량 모달 (메뉴바에서 진입) -->
-<div id="usage-modal" class="modal-overlay hidden" onclick="closeUsage(event)">
-    <div class="modal-card modal-sm" onclick="event.stopPropagation()">
-        <div class="modal-head"><h2>사용량 <span id="profile-tier" class="tier-badge basic">기본</span></h2>
-            <button class="btn-close" onclick="closeUsage()">×</button></div>
-        <div id="usage-box" class="usage-box"></div>
-        <button class="btn-accent" style="width:100%; margin-top:14px" onclick="closeUsage(); openProfile()">요금제 보기 · 업그레이드</button>
-    </div>
-</div>
 
 <div id="toast-container" class="toast-container"></div>
 
