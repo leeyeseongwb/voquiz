@@ -1583,7 +1583,7 @@ input[type="radio"]:focus-visible { box-shadow: 0 0 0 3px rgba(41,121,255,.2); }
     display: inline-flex; align-items: center; gap: 4px;
     padding: 6px 12px; border-radius: 10px;
     font-size: 13px; font-weight: 600; white-space: nowrap;
-    border: 1px solid var(--border); cursor: default;
+    border: 1px solid var(--border); cursor: default; position: relative;
 }
 .mode-status.ondevice { color: var(--accent); background: rgba(108, 92, 231, .12); border-color: rgba(108, 92, 231, .35); }
 .mode-status.gemini { color: var(--text); background: var(--card-2); }
@@ -1591,3 +1591,24 @@ input[type="radio"]:focus-visible { box-shadow: 0 0 0 3px rgba(41,121,255,.2); }
 @media (max-width: 560px) {
     .mode-status { padding: 6px 8px; font-size: 12px; }
 }
+/* 채점 모드 배지 커스텀 팝업 툴팁 (hover 시) */
+.mode-tip {
+    position: absolute; top: calc(100% + 8px); right: 0;
+    width: 250px; padding: 11px 13px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: var(--shadow);
+    color: var(--text); font-weight: 400; font-size: 12px; line-height: 1.5;
+    text-align: left; white-space: normal;
+    opacity: 0; visibility: hidden; transform: translateY(-4px);
+    transition: opacity .15s ease, transform .15s ease, visibility .15s;
+    z-index: 300; pointer-events: none;
+}
+.mode-status:hover .mode-tip { opacity: 1; visibility: visible; transform: translateY(0); }
+.mode-tip > b { display: block; margin-bottom: 6px; font-size: 13px; }
+.mode-tip ul { margin: 0; padding-left: 16px; }
+.mode-tip li { margin: 2px 0; }
+
+/* 설정: 데이터관리 + 온디바이스AI 를 한 칸에 세로로 (비밀번호 칸과 동일 높이) */
+.settings-stack { display: flex; flex-direction: column; gap: 16px; height: 100%; }
+.settings-stack > .settings-block:last-child { flex: 1; }
+.settings-block.compact { padding: 14px 16px 16px; }

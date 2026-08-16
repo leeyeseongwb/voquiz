@@ -99,21 +99,32 @@ async function loadGradeConfig() {
 function updateModeStatus() {
     const el = document.getElementById("mode-status");
     if (!el) return;
+    el.removeAttribute("title"); // 네이티브 툴팁 대신 커스텀 인앱 팝업 사용
     if (navigator.gpu) {
         el.className = "mode-status ondevice";
-        el.innerHTML = "🧠 온디바이스 AI";
-        el.title = "온디바이스 AI로 채점해요.\n· 답안이 이 기기 밖으로 나가지 않아요 (비공개)\n· 무료이고 사용 제한이 없어요";
+        el.innerHTML = `<span class="ms-label">🧠 온디바이스 AI</span>
+            <div class="mode-tip">
+                <b>🧠 온디바이스 AI</b>
+                <ul><li>답안이 이 기기 밖으로 나가지 않아요 (비공개)</li>
+                    <li>무료이고 사용 제한이 없어요</li></ul>
+            </div>`;
     } else {
         el.className = "mode-status gemini";
-        el.innerHTML = '☁️ Gemini <span class="ms-warn">· 사용량 제한</span>';
         const lim = gradeConfig.gemini_daily_limit, used = gradeConfig.gemini_used_today;
         const limTxt = (lim != null) ? `하루 ${lim}문제 제한 (오늘 ${used ?? 0}문제 사용)` : "하루 사용량 제한이 있어요";
-        el.title = `이 기기는 온디바이스 AI(WebGPU)를 지원하지 않아 서버 Gemini로 채점해요.\n· ${limTxt} — 유료 API 비용 때문\n· 제한 없는 온디바이스 AI 사용을 권장해요`;
+        el.innerHTML = `<span class="ms-label">☁️ Gemini <span class="ms-warn">· 사용량 제한</span></span>
+            <div class="mode-tip">
+                <b>☁️ Gemini (서버 채점)</b>
+                <ul><li>${limTxt} — 유료 API 비용 때문</li>
+                    <li>제한 없는 <b>온디바이스 AI</b> 사용을 권장해요</li></ul>
+            </div>`;
     }
 }
 // 설정: 온디바이스 AI 모델 캐시 삭제 (저장공간 비우기 / 온디바이스 끄기)
 async function clearOnDeviceAI() {
-    if (!confirm("온디바이스 AI 모델 캐시(약 1.4GB)를 삭제할까요?\n이후 채점은 서버 Gemini로 진행돼요 (하루 한도 있음).")) return;
+    if (!await showConfirm("온디바이스 AI 캐시 삭제",
+        "온디바이스 AI 모델 캐시(약 1.4GB)를 삭제할까요?\n이후 채점은 서버 Gemini로 진행돼요 (하루 한도 있음).",
+        { okText: "삭제", danger: true })) return;
     try {
         if (window.caches) {
             const keys = await caches.keys();
@@ -138,7 +149,7 @@ function toggleProfileMenu(e) {
 // 인증
 // ============================================================
 function showAuthPane(name) {
-    ["login", "signup", "verify", "take"].forEach(p =>
+    ["login", "signup", "verify"].forEach(p =>
         document.getElementById(`pane-${p}`).classList.toggle("hidden", p !== name));
     hideAuthError();
 }
