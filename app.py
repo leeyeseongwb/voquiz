@@ -568,6 +568,7 @@ class GradeBody(BaseModel):
     exam_id: int
     answers: dict           # {"0": "답", "1": "답", ...}
     time_taken: int = 0
+    ai_pregraded: list | None = None
 
 
 @app.post("/api/attempts/grade-start")
@@ -586,7 +587,7 @@ def grade_start(body: GradeBody, user=Depends(current_user)):
     def worker():
         try:
             report(10, "채점 시작...", "📝 답안 채점을 시작합니다.")
-            outcome = ai_quiz.grade(quiz, body.answers, report)
+            outcome = ai_quiz.grade(quiz, body.answers, report, body.ai_pregraded)
             attempt_id = db.execute(
                 "INSERT INTO attempts (exam_id, user_id, score, correct, total, time_taken, results, created_at) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",

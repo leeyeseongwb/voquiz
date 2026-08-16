@@ -1,7 +1,7 @@
 /* ============================================================
-   VocaShot 프론트엔드 로직 (vanilla JS)
-   - 같은 서버에서 정적 파일이 서빙되므로 API 는 상대경로 사용.
-   - 세션은 httponly 쿠키로 유지 → fetch 에 credentials: 'include'.
+VocaShot 프론트엔드 로직 (vanilla JS)
+- 같은 서버에서 정적 파일이 서빙되므로 API 는 상대경로 사용.
+- 세션은 httponly 쿠키로 유지 → fetch 에 credentials: 'include'.
    ============================================================ */
 
 // ---------- 전역 상태 ----------
@@ -1344,14 +1344,30 @@ function fmtTime(sec) {
     return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-async function submitExam() {
+async function submitExam() { // 자동으로 전역이 됨.
     stopTimer();
     document.getElementById("take-questions").classList.add("hidden");
     document.getElementById("timer").classList.add("hidden");
     const prog = showProgress("grade");
     try {
+        // 주관식 payload 만들기
+        let payload = [];
+        takeState.exam.questions.forEach((q, i) => {
+            if (q.type === "written"){
+                payload.push({ question: q.question, user_ans: takeState.answers[i] || "", correct_ans: q.answer })
+            }
+        })
+
+        // 온디바이스 채점 호출
+        let ai_pregraded = null;
+        if (payload.length > 0){ // 객관식은 AI 없이 단순히 매칭이기에 필요가 없음. 주관식 문제가 있을 때만 AI를 호출하여 불필요한 자원낭비 최소화
+            ai_pregraded = await gradeWrittenOnDevice(payload);
+        }
+
+
+
         const r = await api("/api/attempts/grade-start", { method: "POST", body: {
-            exam_id: takeState.exam.id, answers: takeState.answers, time_taken: takeState.elapsed } });
+            exam_id: takeState.exam.id, answers: takeState.answers, time_taken: takeState.elapsed, ai_pregraded: ai_pregraded } });
         const result = await pollProgress(r.job_id, prog);
         reportState = { examId: takeState.exam.id, attemptId: result.attempt_id };
         renderReport(result, takeState.exam);

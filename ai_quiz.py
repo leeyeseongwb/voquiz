@@ -256,7 +256,7 @@ Return JSON ONLY (write 'feedback' in {fb_lang}):
     return {"correct": False, "feedback": "첨삭에 실패했어요. 잠시 후 다시 시도해주세요.", "correction": ""}
 
 
-def grade(quiz, user_answers, report=None):
+def grade(quiz, user_answers, report=None, ai_pregraded = None):
     """
     응시 답안을 채점한다.
     - quiz: 문제 리스트
@@ -295,7 +295,12 @@ def grade(quiz, user_answers, report=None):
             "correct_ans": quiz[i].get("answer", ""),
         } for i in written_idx]
 
-        ai_results = _grade_written(payload)
+        # 분기: WebLLM 사용가능, 부락
+        if (ai_pregraded and len(ai_pregraded) == len(payload)):
+            ai_results = ai_pregraded
+        else:
+            ai_results = _grade_written(payload)
+
         for n, i in enumerate(written_idx):
             r = ai_results[n] if n < len(ai_results) else {"correct": False, "feedback": ""}
             results[i] = {
@@ -313,8 +318,9 @@ def grade(quiz, user_answers, report=None):
         report(100, "채점 완료", f"🎯 {correct}/{total} 정답 ({score}%)")
     return {"score": score, "correct": correct, "total": total, "results": results}
 
-
+# 이 부분을 온디바이스로 사용하게 되는 경우 프롬프트 만들기, 모델 전송 및 결과 값 리턴 2가지 함수로 나뉘어진다.
 def _grade_written(payload):
+    # 프롬프트 문자열 생성
     """주관식 답안을 Gemini 로 채점. 실패 시 단순 문자열 비교로 폴백."""
     try:
         prompt = f"""
@@ -331,9 +337,9 @@ You are a warm, encouraging English teacher grading a Korean student's vocabular
 [Output] JSON array, same length and order as input:
 [{{"correct": true, "feedback": "정확해요!"}}]
 """
-        result = _gemini_json(prompt)
+        result = _gemini_json(prompt) # ← 모델 호출
         if isinstance(result, list):
-            return result
+            return result # ← 성공하면 Gemini 결과
     except Exception:
         pass
     # 폴백: 정확 일치만 정답 처리
@@ -344,4 +350,4 @@ You are a warm, encouraging English teacher grading a Korean student's vocabular
             "correct": bool(ok),
             "feedback": "정확해요!" if ok else f"정답은 '{item['correct_ans']}' 입니다.",
         })
-    return fallback
+    return fallback # ← 실패하면 폴백
