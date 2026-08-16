@@ -24,6 +24,7 @@ import os
 import json
 import re
 import random
+from datetime import date
 
 import requests
 from dotenv import load_dotenv
@@ -31,6 +32,37 @@ from dotenv import load_dotenv
 load_dotenv()
 API_KEY = os.getenv("GOOGLE_API_KEY")
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
+
+# ── Gemini 하루 채점 한도 (유료 API 비용 제한) ───────────────────────────
+# 하루에 Gemini로 채점할 수 있는 최대 주관식 '문제 수'. 환경변수 GEMINI_DAILY_LIMIT로 조절.
+GEMINI_DAILY_LIMIT = int(os.getenv("GEMINI_DAILY_LIMIT", "100"))
+_USAGE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "gemini_usage.json")
+
+
+def _gemini_usage_today():
+    """오늘 Gemini로 채점한 문제 수 (날짜가 바뀌면 0)."""
+    today = date.today().isoformat()
+    try:
+        with open(_USAGE_PATH, encoding="utf-8") as f:
+            d = json.load(f)
+        if d.get("date") == today:
+            return int(d.get("count", 0))
+    except Exception:
+        pass
+    return 0
+
+
+def _gemini_add_usage(n):
+    """오늘 사용량에 n문제 추가(파일에 기록)."""
+    today = date.today().isoformat()
+    count = _gemini_usage_today() + n
+    try:
+        os.makedirs(os.path.dirname(_USAGE_PATH), exist_ok=True)
+        with open(_USAGE_PATH, "w", encoding="utf-8") as f:
+            json.dump({"date": today, "count": count}, f)
+    except Exception:
+        pass
+    return count
 
 # 형식별 사람이 읽는 라벨 + AI 프롬프트 지시문
 FORMAT_LABELS = {
@@ -320,10 +352,12 @@ def grade(quiz, user_answers, report=None, ai_pregraded = None):
 
 # 이 부분을 온디바이스로 사용하게 되는 경우 프롬프트 만들기, 모델 전송 및 결과 값 리턴 2가지 함수로 나뉘어진다.
 def _grade_written(payload):
-    # 프롬프트 문자열 생성
-    """주관식 답안을 Gemini 로 채점. 실패 시 단순 문자열 비교로 폴백."""
-    try:
-        prompt = f"""
+    """주관식 답안을 Gemini 로 채점. 하루 한도 초과 또는 실패 시 단순 문자열 비교로 폴백."""
+    # 하루 Gemini 채점 한도 확인 (유료 API 비용 제한). 온디바이스 채점은 여기까지 오지 않음.
+    over_limit = _gemini_usage_today() + len(payload) > GEMINI_DAILY_LIMIT
+    if not over_limit:
+        try:
+            prompt = f"""
 You are a warm, encouraging English teacher grading a Korean student's vocabulary answers.
 
 [Data] {json.dumps(payload, ensure_ascii=False)}
@@ -337,17 +371,18 @@ You are a warm, encouraging English teacher grading a Korean student's vocabular
 [Output] JSON array, same length and order as input:
 [{{"correct": true, "feedback": "정확해요!"}}]
 """
-        result = _gemini_json(prompt) # ← 모델 호출
-        if isinstance(result, list):
-            return result # ← 성공하면 Gemini 결과
-    except Exception:
-        pass
-    # 폴백: 정확 일치만 정답 처리
+            result = _gemini_json(prompt)  # ← 모델 호출
+            if isinstance(result, list):
+                _gemini_add_usage(len(payload))  # 성공 시 오늘 사용량 기록
+                return result  # ← 성공하면 Gemini 결과
+        except Exception:
+            pass
+    # 폴백: 한도 초과이거나 Gemini 실패 → 규칙 기반(정확 일치)
     fallback = []
     for item in payload:
         ok = item["user_ans"].strip() and item["user_ans"].strip() == item["correct_ans"].strip()
-        fallback.append({
-            "correct": bool(ok),
-            "feedback": "정확해요!" if ok else f"정답은 '{item['correct_ans']}' 입니다.",
-        })
-    return fallback # ← 실패하면 폴백
+        fb = "정확해요!" if ok else f"정답은 '{item['correct_ans']}' 입니다."
+        if over_limit:
+            fb += " · 오늘 Gemini 채점 한도에 도달했어요. 제한 없는 온디바이스 AI 사용을 권장해요."
+        fallback.append({"correct": bool(ok), "feedback": fb})
+    return fallback  # ← 한도 초과/실패 시 폴백

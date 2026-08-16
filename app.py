@@ -564,6 +564,15 @@ def delete_exam(exam_id: int, user=Depends(current_user)):
 # ==================================================================
 # 응시 & 채점
 # ==================================================================
+@app.get("/api/grade-config")
+def grade_config():
+    """채점 설정(Gemini 하루 한도/오늘 사용량). 우측 상단 상태 배지용. 로그인 불필요."""
+    return {
+        "gemini_daily_limit": ai_quiz.GEMINI_DAILY_LIMIT,
+        "gemini_used_today": ai_quiz._gemini_usage_today(),
+    }
+
+
 class GradeBody(BaseModel):
     exam_id: int
     answers: dict           # {"0": "답", "1": "답", ...}

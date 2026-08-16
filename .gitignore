@@ -3,6 +3,7 @@
 
 # 데이터베이스 & 업로드 파일
 data/*.db
+data/gemini_usage.json
 uploads/*
 !uploads/.gitkeep
 

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VocaShot — AI 단어 학습</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Gowun+Dodum&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=25">
+    <link rel="stylesheet" href="style.css?v=30">
     <link rel="icon" href="Favicon.png?v=3">
 </head>
 <body>
@@ -97,12 +97,23 @@
 
         <!-- 상단 스트립: 다크모드 -->
         <div class="topstrip">
+            <div class="mode-status" id="mode-status"></div>
             <button id="theme-toggle" class="side-icon-btn sm theme-toggle-btn" onclick="toggleTheme()" title="테마 전환"></button>
         </div>
 
 
         <!-- 대시보드 (메인) -->
         <section id="view-dashboard">
+            <!-- 온디바이스 AI 다운로드 배너 (아직 안 받았고 WebGPU 지원 시에만 노출) -->
+            <div id="llm-banner" class="llm-banner hidden">
+                <span class="llm-banner-ico">🧠</span>
+                <div class="llm-banner-body">
+                    <b>온디바이스 AI를 준비할까요?</b>
+                    <span class="muted">주관식 채점을 이 기기 안에서 처리해요. 한 번만 내려받으면 돼요 (약 1.4GB).</span>
+                </div>
+                <button class="btn-primary" onclick="downloadLLM()">지금 다운로드</button>
+                <button class="btn-mini" onclick="dismissLLMBanner()">나중에</button>
+            </div>
             <!-- 통계 개요 -->
             <div class="dash-stats">
                 <h1 id="dash-greeting" class="dash-greeting">안녕하세요 👋</h1>
@@ -281,6 +292,10 @@
                     <label class="block-label">1. 단어장 선택 <span class="hint-text">(여러 개 선택 가능)</span></label>
                     <div id="ec-wordbooks" class="ec-wb-grid"></div>
                     <div class="sel-count">선택된 단어: <b id="ec-word-count">0</b>개 <span id="ec-wb-note" class="muted"></span></div>
+                    <div class="ec-range-row">
+                        <button type="button" class="btn-mini" onclick="openRangeModal()">🎯 범위 설정하기</button>
+                        <span id="ec-range-note" class="muted">범위: 전체 단어</span>
+                    </div>
                 </div>
 
                 <div class="config-block">
@@ -588,6 +603,12 @@
                     <button class="btn-ghost danger" style="width:100%" onclick="resetStats()">📊 통계 초기화 (응시 기록·숙련도 삭제)</button>
                     <p class="muted" style="margin-top:8px">단어장과 시험지는 유지되고, 점수·응시 기록·복습 숙련도만 초기화됩니다.</p>
                 </section>
+
+                <section class="settings-block">
+                    <h3>🧠 온디바이스 AI</h3>
+                    <button class="btn-ghost danger" style="width:100%" onclick="clearOnDeviceAI()">🗑 온디바이스 AI 모델 캐시 삭제 (약 1.4GB)</button>
+                    <p class="muted" style="margin-top:8px">브라우저에 저장된 온디바이스 AI 모델을 삭제해요. 저장 공간을 비우거나 온디바이스 채점을 끄고 싶을 때 사용하세요. 삭제 후에는 서버 Gemini로 채점돼요 (하루 한도 있음).</p>
+                </section>
             </div>
         </div>
     </div>
@@ -741,9 +762,51 @@
 
 <div id="toast-container" class="toast-container"></div>
 
-<script type="module" src="ai_grade.js?v=1"></script> 
+<!-- 온디바이스 LLM 로딩 오버레이 -->
+<div id="llm-loading" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width:420px; text-align:center">
+        <div class="llm-spinner"></div>
+        <h2 style="margin:10px 0 2px">🧠 온디바이스 AI 준비 중</h2>
+        <p class="sub" style="margin:0">온디바이스 LLM을 불러오는 중입니다</p>
+        <div class="progress-track" style="margin:16px 0 6px"><div id="llm-loading-bar" class="progress-bar"></div></div>
+        <div class="llm-loading-status">
+            <span id="llm-loading-msg">시작하는 중…</span><span id="llm-loading-pct">0%</span>
+        </div>
+        <p class="muted" style="margin-top:14px; font-size:12px; line-height:1.5">
+            처음 한 번만 모델(약 1.4GB)을 내려받아요. 다음부터는 훨씬 빨라져요.<br>답안은 이 기기 안에서 채점돼요.
+        </p>
+        <button class="btn-mini" style="margin-top:12px" onclick="cancelLLMLoad()">취소 (서버 채점으로 진행)</button>
+    </div>
+</div>
+
+<!-- 시험 범위 설정 모달 -->
+<div id="range-modal" class="modal-overlay hidden" onclick="closeRangeModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()" style="max-width:560px">
+        <div class="modal-head"><h2>🎯 시험 범위 설정</h2><button class="btn-close" onclick="closeRangeModal()">×</button></div>
+        <p class="muted" style="margin:0 0 12px">범위를 입력해 단어를 선택하고, 체크박스로 중간중간 제외할 수 있어요.</p>
+        <div class="range-controls">
+            <input type="number" id="range-from" placeholder="시작" min="1" style="width:80px">
+            <span>~</span>
+            <input type="number" id="range-to" placeholder="끝" min="1" style="width:80px">
+            <button type="button" class="btn-mini" onclick="applyRange()">범위 적용</button>
+            <button type="button" class="btn-mini" onclick="selectAllRange(true)">전체 선택</button>
+            <button type="button" class="btn-mini" onclick="selectAllRange(false)">전체 해제</button>
+        </div>
+        <div class="range-exclude">
+            <input type="text" id="range-exclude-input" placeholder="제외할 번호 (예: 5, 12, 20-22)">
+            <button type="button" class="btn-mini" onclick="applyExclude()">제외하기</button>
+        </div>
+        <div id="range-words" class="range-word-list"></div>
+        <div class="range-foot">
+            <span>선택됨: <b id="range-sel-count">0</b> / <span id="range-total">0</span>개</span>
+            <button type="button" class="btn-accent" onclick="confirmRange()">이 범위로 설정</button>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="ai_grade.js?v=4"></script> 
 <!-- ai.grade.js라는 자바스크립트 파일을 불러와 실행하라고 명령. ?v=1은 쿼리 문자열. 캐시본을 재사용해 수정이 반영되지 않는 것을 방지 -->
 <!-- module은 파일을 ES 모듈로 취급하라느 것. 그리하여 import/export 사용, scrict mode, 스코프 격리, HTML 다 읽은 뒤 실행 킴 -->
-<script src="app.js?v=29"></script>
+<script src="app.js?v=34"></script>
 </body>
 </html>

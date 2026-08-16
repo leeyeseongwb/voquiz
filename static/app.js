@@ -61,7 +61,71 @@ function navTo(section) {
         document.getElementById("tab-" + t).classList.toggle("hidden", isDash || t !== section));
     if (isDash) loadStats();
     else switchTab(section);
+    maybeShowLLMBanner();
     window.scrollTo(0, 0);
+}
+
+// ===== 온디바이스 AI 다운로드 배너 (메인 상단) =====
+let _llmBannerDismissed = false;
+function maybeShowLLMBanner() {
+    const banner = document.getElementById("llm-banner");
+    if (!banner) return;
+    const supported = window.hasWebGPU && window.hasWebGPU();       // WebGPU 되는 기기만
+    const ready = window.isOnDeviceAIReady && window.isOnDeviceAIReady(); // 이미 받았나
+    const show = supported && !ready && !_llmBannerDismissed;
+    banner.classList.toggle("hidden", !show);
+}
+async function downloadLLM() {
+    const ok = await window.prepareOnDeviceAI(); // 로딩 오버레이 뜨고 모델 다운로드
+    if (ok) {
+        toast("온디바이스 AI 준비 완료! 🎉", "success");
+        document.getElementById("llm-banner")?.classList.add("hidden");
+    } else {
+        toastErr("온디바이스 AI를 불러오지 못했어요. 채점 시 서버로 진행돼요.");
+    }
+}
+function dismissLLMBanner() {
+    _llmBannerDismissed = true; // 이번 세션 동안만 숨김
+    document.getElementById("llm-banner")?.classList.add("hidden");
+}
+
+// ===== 채점 모드 상태 표시 (읽기 전용) — 우측 상단 =====
+// WebGPU 지원 기기면 온디바이스(무료·무제한), 아니면 Gemini(서버·유료 → 하루 한도).
+let gradeConfig = { gemini_daily_limit: null, gemini_used_today: null };
+async function loadGradeConfig() {
+    try { gradeConfig = await api("/api/grade-config"); } catch (_) {}
+    updateModeStatus();
+}
+function updateModeStatus() {
+    const el = document.getElementById("mode-status");
+    if (!el) return;
+    if (navigator.gpu) {
+        el.className = "mode-status ondevice";
+        el.innerHTML = "🧠 온디바이스 AI";
+        el.title = "온디바이스 AI로 채점해요.\n· 답안이 이 기기 밖으로 나가지 않아요 (비공개)\n· 무료이고 사용 제한이 없어요";
+    } else {
+        el.className = "mode-status gemini";
+        el.innerHTML = '☁️ Gemini <span class="ms-warn">· 사용량 제한</span>';
+        const lim = gradeConfig.gemini_daily_limit, used = gradeConfig.gemini_used_today;
+        const limTxt = (lim != null) ? `하루 ${lim}문제 제한 (오늘 ${used ?? 0}문제 사용)` : "하루 사용량 제한이 있어요";
+        el.title = `이 기기는 온디바이스 AI(WebGPU)를 지원하지 않아 서버 Gemini로 채점해요.\n· ${limTxt} — 유료 API 비용 때문\n· 제한 없는 온디바이스 AI 사용을 권장해요`;
+    }
+}
+// 설정: 온디바이스 AI 모델 캐시 삭제 (저장공간 비우기 / 온디바이스 끄기)
+async function clearOnDeviceAI() {
+    if (!confirm("온디바이스 AI 모델 캐시(약 1.4GB)를 삭제할까요?\n이후 채점은 서버 Gemini로 진행돼요 (하루 한도 있음).")) return;
+    try {
+        if (window.caches) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => caches.delete(k))); // 브라우저 캐시(모델 가중치) 삭제
+        }
+        localStorage.removeItem("vocashot_llm_cached");
+        window.resetOnDeviceAI && window.resetOnDeviceAI(); // 메모리 엔진 해제
+        _llmBannerDismissed = false;                        // 배너 다시 뜰 수 있게
+        toast("온디바이스 AI 모델 캐시를 삭제했어요.", "success");
+        updateModeStatus();
+        maybeShowLLMBanner();
+    } catch (e) { toastErr("삭제 실패: " + e.message); }
 }
 
 // 프로필 클릭 → 로그아웃 메뉴 토글
@@ -1153,7 +1217,122 @@ function renderEcWordbooks() {
 function toggleEcWb(id, checked) {
     if (checked) ecState.selected.add(id); else ecState.selected.delete(id);
     document.querySelector(`.ec-wb[data-id="${id}"]`)?.classList.toggle("sel", checked);
+    // 단어장 구성이 바뀌면 이전 범위 설정은 무효 → 전체로 리셋
+    ecState.selectedWords = null;
+    const note = document.getElementById("ec-range-note");
+    if (note) note.textContent = "범위: 전체 단어";
     updateEcCount();
+}
+
+// ============================================================
+// 시험 범위 설정 (선택 단어장의 단어를 미리보고 범위/제외 지정)
+// ============================================================
+async function openRangeModal() {
+    const chosen = ecState.wordbooks.filter(w => ecState.selected.has(w.id));
+    if (!chosen.length) return toastErr("먼저 단어장을 선택하세요.");
+    let words = [];
+    try {
+        for (const wb of chosen) {
+            const { words: ws } = await api(`/api/wordbooks/${wb.id}`);
+            words = words.concat(ws);
+        }
+    } catch (e) { return toastErr("단어를 불러오지 못했어요: " + e.message); }
+    if (!words.length) return toastErr("선택한 단어장에 단어가 없습니다.");
+    ecState.rangeWords = words;
+    // 이전 선택이 있으면 복원(단어 기준), 없으면 전체 선택
+    if (ecState.selectedWords && ecState.selectedWords.length) {
+        const keys = new Set(ecState.selectedWords.map(w => w.word + "|" + (w.meaning || "")));
+        ecState.rangeSel = new Set();
+        words.forEach((w, i) => { if (keys.has(w.word + "|" + (w.meaning || ""))) ecState.rangeSel.add(i); });
+    } else {
+        ecState.rangeSel = new Set(words.map((_, i) => i));
+    }
+    document.getElementById("range-from").value = "";
+    document.getElementById("range-to").value = "";
+    document.getElementById("range-exclude-input").value = "";
+    document.getElementById("range-total").textContent = words.length;
+    renderRangeWords();
+    document.getElementById("range-modal").classList.remove("hidden");
+}
+
+function renderRangeWords() {
+    const box = document.getElementById("range-words");
+    box.innerHTML = ecState.rangeWords.map((w, i) => {
+        const sel = ecState.rangeSel.has(i);
+        return `<label class="range-word ${sel ? "sel" : ""}" data-i="${i}">
+            <input type="checkbox" ${sel ? "checked" : ""} onchange="toggleRangeWord(${i}, this.checked)">
+            <span class="rw-num">${i + 1}</span>
+            <span class="rw-word">${esc(w.word || "")}</span>
+            <span class="rw-meaning muted">${esc(w.meaning || w.definition || "")}</span>
+        </label>`;
+    }).join("");
+    updateRangeCount();
+}
+
+function toggleRangeWord(i, checked) {
+    if (checked) ecState.rangeSel.add(i); else ecState.rangeSel.delete(i);
+    document.querySelector(`.range-word[data-i="${i}"]`)?.classList.toggle("sel", checked);
+    updateRangeCount();
+}
+
+// 범위 입력 → 그 범위만 정확히 선택 (나머지는 해제)
+function applyRange() {
+    const total = ecState.rangeWords.length;
+    let from = parseInt(document.getElementById("range-from").value);
+    let to = parseInt(document.getElementById("range-to").value);
+    if (isNaN(from)) from = 1;
+    if (isNaN(to)) to = total;
+    from = Math.max(1, Math.min(from, total));
+    to = Math.max(1, Math.min(to, total));
+    if (from > to) { const t = from; from = to; to = t; }
+    ecState.rangeSel = new Set();
+    for (let i = from - 1; i <= to - 1; i++) ecState.rangeSel.add(i);
+    renderRangeWords();
+}
+
+function selectAllRange(on) {
+    ecState.rangeSel = on ? new Set(ecState.rangeWords.map((_, i) => i)) : new Set();
+    renderRangeWords();
+}
+
+// "5, 12, 20-22" 같은 입력을 파싱해 해당 번호를 선택 해제
+function applyExclude() {
+    const raw = document.getElementById("range-exclude-input").value.trim();
+    if (!raw) return;
+    const total = ecState.rangeWords.length;
+    raw.split(",").forEach(part => {
+        part = part.trim();
+        const m = part.match(/^(\d+)\s*-\s*(\d+)$/);
+        if (m) {
+            let a = parseInt(m[1]), b = parseInt(m[2]);
+            if (a > b) { const t = a; a = b; b = t; }
+            for (let n = a; n <= b; n++) if (n >= 1 && n <= total) ecState.rangeSel.delete(n - 1);
+        } else {
+            const n = parseInt(part);
+            if (!isNaN(n) && n >= 1 && n <= total) ecState.rangeSel.delete(n - 1);
+        }
+    });
+    renderRangeWords();
+}
+
+function updateRangeCount() {
+    document.getElementById("range-sel-count").textContent = ecState.rangeSel.size;
+}
+
+function closeRangeModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById("range-modal").classList.add("hidden");
+}
+
+function confirmRange() {
+    if (!ecState.rangeSel.size) return toastErr("최소 한 단어는 선택해야 해요.");
+    ecState.selectedWords = [...ecState.rangeSel].sort((a, b) => a - b).map(i => ecState.rangeWords[i]);
+    const total = ecState.rangeWords.length;
+    const n = ecState.selectedWords.length;
+    document.getElementById("ec-range-note").textContent =
+        n === total ? "범위: 전체 단어" : `범위: ${n}개 선택됨`;
+    document.getElementById("range-modal").classList.add("hidden");
+    toast(`${n}개 단어로 범위를 설정했어요.`, "success");
 }
 
 function updateEcCount() {
@@ -1174,15 +1353,19 @@ function selectFormat(el) {
 async function startGenerate() {
     const chosen = ecState.wordbooks.filter(w => ecState.selected.has(w.id));
     if (!chosen.length) return toastErr("단어장을 하나 이상 선택하세요.");
-    // 선택한 단어장들의 단어를 모두 모으기
+    // 범위 설정이 있으면 그 단어만, 없으면 선택 단어장의 전체 단어
     let allWords = [];
     let language = chosen[0].language || "en";
-    try {
-        for (const wb of chosen) {
-            const { words } = await api(`/api/wordbooks/${wb.id}`);
-            allWords = allWords.concat(words);
-        }
-    } catch (e) { return toastErr("단어를 불러오지 못했어요: " + e.message); }
+    if (ecState.selectedWords && ecState.selectedWords.length) {
+        allWords = ecState.selectedWords;
+    } else {
+        try {
+            for (const wb of chosen) {
+                const { words } = await api(`/api/wordbooks/${wb.id}`);
+                allWords = allWords.concat(words);
+            }
+        } catch (e) { return toastErr("단어를 불러오지 못했어요: " + e.message); }
+    }
     if (!allWords.length) return toastErr("선택한 단어장에 단어가 없습니다.");
 
     const meaningLang = document.querySelector('input[name="meaningLang"]:checked')?.value || "ko";
@@ -1360,7 +1543,8 @@ async function submitExam() { // 자동으로 전역이 됨.
 
         // 온디바이스 채점 호출
         let ai_pregraded = null;
-        if (payload.length > 0){ // 객관식은 AI 없이 단순히 매칭이기에 필요가 없음. 주관식 문제가 있을 때만 AI를 호출하여 불필요한 자원낭비 최소화
+        // 주관식이 있으면 온디바이스 채점 시도 (WebGPU 없으면 gradeWrittenOnDevice가 null → 서버 Gemini)
+        if (payload.length > 0){
             ai_pregraded = await gradeWrittenOnDevice(payload);
         }
 
@@ -2031,6 +2215,8 @@ document.addEventListener("DOMContentLoaded", () => {
     applyIcons();
     applyI18n();
     initTheme();
+    updateModeStatus();
+    loadGradeConfig();
     setupUploadArea();
     setupCrop();
     init();
