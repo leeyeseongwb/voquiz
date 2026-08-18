@@ -1663,3 +1663,9 @@ input[type="radio"]:focus-visible { box-shadow: 0 0 0 3px rgba(41,121,255,.2); }
 .chat-bubble.assistant { align-self: flex-start; background: var(--card-2); color: var(--text); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
 .chat-input-row { display: flex; gap: 8px; margin-top: 12px; }
 .chat-input-row input { flex: 1; padding: 11px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--card-2); color: var(--text); }
+/* 채팅 말풍선 안 마크다운 */
+.chat-bubble code { background: rgba(127, 127, 127, .22); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+.chat-bubble ul, .chat-bubble ol { margin: 4px 0; padding-left: 20px; }
+.chat-bubble li { margin: 2px 0; }
+.chat-bubble div { margin: 3px 0; }
+.chat-bubble div:first-child { margin-top: 0; }

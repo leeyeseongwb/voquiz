@@ -1990,10 +1990,31 @@ function addChatBubble(role, text) {
     const box = document.getElementById("chat-messages");
     const d = document.createElement("div");
     d.className = "chat-bubble " + role;
-    d.textContent = text;
+    if (role === "assistant") d.innerHTML = mdToHtml(text);  // AI 답변은 마크다운 렌더
+    else d.textContent = text;                                // 사용자 입력은 그대로(안전)
     box.appendChild(d);
     box.scrollTop = box.scrollHeight;
     return d;
+}
+
+// 아주 가벼운 마크다운 → HTML (먼저 HTML 이스케이프 후 적용, XSS 방지)
+function mdToHtml(md) {
+    let h = esc(md || "");
+    h = h.replace(/`([^`]+)`/g, "<code>$1</code>");          // `코드`
+    h = h.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>"); // **굵게**
+    h = h.replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");  // *기울임*
+    const lines = h.split("\n");
+    let out = "", ul = false, ol = false;
+    const closeLists = () => { if (ul) { out += "</ul>"; ul = false; } if (ol) { out += "</ol>"; ol = false; } };
+    for (const line of lines) {
+        const mUl = line.match(/^\s*[-*]\s+(.*)$/);
+        const mOl = line.match(/^\s*\d+\.\s+(.*)$/);
+        if (mUl) { if (ol) { out += "</ol>"; ol = false; } if (!ul) { out += "<ul>"; ul = true; } out += `<li>${mUl[1]}</li>`; }
+        else if (mOl) { if (ul) { out += "</ul>"; ul = false; } if (!ol) { out += "<ol>"; ol = true; } out += `<li>${mOl[1]}</li>`; }
+        else { closeLists(); if (line.trim()) out += `<div>${line}</div>`; }
+    }
+    closeLists();
+    return out;
 }
 async function sendChat() {
     const input = document.getElementById("chat-input");
@@ -2009,14 +2030,22 @@ async function sendChat() {
     const thinking = addChatBubble("assistant", "생각 중…");
     try {
         const reply = await window.chatOnDevice(chatHistory.slice(-8)); // 최근 맥락만
-        thinking.textContent = reply || "죄송해요, 답변을 만들지 못했어요. 다시 물어봐 주세요.";
+        thinking.innerHTML = mdToHtml(reply || "죄송해요, 답변을 만들지 못했어요. 다시 물어봐 주세요.");
         if (reply) chatHistory.push({ role: "assistant", content: reply });
     } catch (e) {
-        thinking.textContent = "오류가 났어요. 다시 시도해주세요.";
+        thinking.innerHTML = mdToHtml("오류가 났어요. 다시 시도해주세요.");
     } finally {
         document.getElementById("chat-send").disabled = false;
         document.getElementById("chat-messages").scrollTop = 1e9;
     }
+}
+async function clearChat() {
+    if (chatHistory.length &&
+        !await showConfirm("대화 지우기", "지금까지의 대화를 모두 지울까요?", { okText: "지우기", danger: true })) return;
+    chatHistory = [];
+    renderChat();
+    addChatBubble("assistant", "새 대화를 시작해요! 궁금한 단어를 물어보세요 🤖");
+    toast("대화를 지웠어요.", "success");
 }
 
 // 문제·해설 언어: 플래그 칩 선택 UI
