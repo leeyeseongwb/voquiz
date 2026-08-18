@@ -97,7 +97,7 @@ button:disabled { opacity: .6; cursor: not-allowed; }
     background: var(--card); border-radius: 20px; box-shadow: var(--shadow);
     width: 100%; max-width: 400px; padding: 40px 32px; text-align: center;
 }
-.auth-logo { width: 200px; margin-bottom: 6px; }
+.auth-logo { width: 250px; margin-bottom: 6px; }
 .auth-tagline { color: var(--muted); font-size: .9rem; margin: 0 0 28px; }
 .auth-pane { display: flex; flex-direction: column; gap: 12px; }
 .auth-pane input {
@@ -1062,8 +1062,10 @@ main > section:not(.hidden) { animation: viewIn .32s cubic-bezier(.2,.8,.2,1); }
     display: flex; flex-direction: column; gap: 6px;
     padding: 18px 14px; position: sticky; top: 0; height: 100vh;
 }
-.side-logo { padding: 4px 8px 12px; }
-.side-logo .topbar-logo { height: 34px; }
+.side-logo {padding: 4px 8px 12px; }
+.side-logo .topbar-logo {
+    height: 55px;
+}
 
 /* 프로필 → 로그아웃 */
 .side-profile-wrap { position: relative; margin-bottom: 6px; }
