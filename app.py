@@ -35,6 +35,14 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+# 관리자 이메일 (파일럿 콘솔 접근). 서버 .env의 ADMIN_EMAILS(콤마구분)로 설정.
+ADMIN_EMAILS = {e.strip().lower() for e in
+                os.getenv("ADMIN_EMAILS", "leeyeseongwb@gmail.com,test@vocashot.com").split(",") if e.strip()}
+
+
+def _is_admin_email(email):
+    return (email or "").lower() in ADMIN_EMAILS
+
 app = FastAPI(title="VocaShot")
 
 
@@ -170,6 +178,7 @@ def me(user=Depends(current_user)):
         "nickname": full.get("nickname") or full["email"].split("@")[0],
         "avatar": full.get("avatar") or "",
         "explain_lang": full.get("explain_lang") or "ko",
+        "is_admin": _is_admin_email(full["email"]),
     }
 
 
@@ -598,11 +607,12 @@ def grade_start(body: GradeBody, user=Depends(current_user)):
             report(10, "채점 시작...", "📝 답안 채점을 시작합니다.")
             outcome = ai_quiz.grade(quiz, body.answers, report, body.ai_pregraded)
             attempt_id = db.execute(
-                "INSERT INTO attempts (exam_id, user_id, score, correct, total, time_taken, results, created_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO attempts (exam_id, user_id, score, correct, total, time_taken, results, graded_by, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (body.exam_id, user["id"], outcome["score"], outcome["correct"],
                  outcome["total"], body.time_taken,
-                 json.dumps(outcome["results"], ensure_ascii=False), _now()),
+                 json.dumps(outcome["results"], ensure_ascii=False),
+                 outcome.get("graded_by", ""), _now()),
                 commit=True,
             )
             outcome["attempt_id"] = attempt_id
@@ -717,6 +727,53 @@ def get_attempt(attempt_id: int, user=Depends(current_user)):
         raise HTTPException(404, "응시 기록을 찾을 수 없습니다.")
     att["results"] = json.loads(att["results"])
     return {"attempt": att}
+
+
+class GradeReportBody(BaseModel):
+    idx: int  # 신고할 문항 번호 (results의 idx, 1-based)
+
+
+@app.post("/api/attempts/{attempt_id}/report-grade")
+def report_grade_issue(attempt_id: int, body: GradeReportBody, user=Depends(current_user)):
+    """학생이 '이 채점 이상해요'로 신고한 문항 기록 (파일럿: AI 오채점 실사례 수집)."""
+    att = db.query_one("SELECT * FROM attempts WHERE id=? AND user_id=?", (attempt_id, user["id"]))
+    if not att:
+        raise HTTPException(404, "응시 기록을 찾을 수 없습니다.")
+    results = json.loads(att["results"])
+    item = next((r for r in results if r.get("idx") == body.idx), None)
+    if not item:
+        raise HTTPException(400, "문항을 찾을 수 없습니다.")
+    db.execute(
+        "INSERT INTO grade_reports (attempt_id, user_id, idx, word, student_ans, correct_ans, "
+        "model_correct, graded_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (attempt_id, user["id"], body.idx, item.get("question", ""), item.get("user_ans", ""),
+         item.get("correct_ans", ""), 1 if item.get("correct") else 0, att["graded_by"], _now()),
+        commit=True)
+    return {"status": "success"}
+
+
+@app.get("/api/admin/pilot")
+def admin_pilot(user=Depends(current_user)):
+    """관리자 콘솔: 파일럿 데이터(채점 모드 분포·온디바이스 성공률·오채점 신고)."""
+    full = auth.get_user_full(user["id"])
+    if not _is_admin_email(full["email"]):
+        raise HTTPException(403, "관리자만 접근할 수 있습니다.")
+    modes = db.query_all(
+        "SELECT COALESCE(NULLIF(graded_by,''),'(none)') m, COUNT(*) c FROM attempts GROUP BY m")
+    mode_map = {m["m"]: m["c"] for m in modes}
+    on, sv = mode_map.get("ondevice", 0), mode_map.get("server", 0)
+    reports = db.query_all(
+        "SELECT gr.idx, gr.word, gr.student_ans, gr.correct_ans, gr.model_correct, gr.graded_by, "
+        "gr.created_at, u.email FROM grade_reports gr LEFT JOIN users u ON u.id=gr.user_id "
+        "ORDER BY gr.created_at DESC LIMIT 300")
+    return {
+        "modes": mode_map,
+        "ondevice_rate": round(on / (on + sv) * 100) if (on + sv) else None,
+        "total_attempts": db.query_one("SELECT COUNT(*) c FROM attempts")["c"],
+        "participants": db.query_one("SELECT COUNT(DISTINCT user_id) c FROM attempts")["c"],
+        "report_count": db.query_one("SELECT COUNT(*) c FROM grade_reports")["c"],
+        "reports": reports,
+    }
 
 
 # ==================================================================

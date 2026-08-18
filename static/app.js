@@ -42,6 +42,7 @@ function showView(id) {
     if (id !== "view-game" && typeof gameState !== "undefined" && gameState.timer) {
         clearInterval(gameState.timer);
     }
+    document.getElementById("report-fab")?.classList.toggle("hidden", id !== "view-report"); // 리포트에서만 신고 버튼
     window.scrollTo(0, 0);
 }
 
@@ -1609,6 +1610,7 @@ async function renderReport(result, exam) {
     document.getElementById("rep-correct").textContent = result.correct;
     document.getElementById("rep-total").textContent = result.total;
 
+    reportState.results = result.results;  // 플로팅 신고 버튼 피커에서 사용
     document.getElementById("rep-detail").innerHTML = result.results.map(r => `
         <div class="rep-q ${r.correct ? "" : "wrong"}">
             <div class="rq-title">Q${r.idx}. ${esc(r.question)}</div>
@@ -1619,6 +1621,30 @@ async function renderReport(result, exam) {
 
     await loadHistory(exam.id);
     showView("view-report");
+}
+
+// 파일럿: 우측 하단 플로팅 신고 버튼 → 문항 선택 → 신고
+function openReportPicker() {
+    if (!reportState.attemptId) return toastErr("먼저 채점을 완료해주세요.");
+    const rs = reportState.results || [];
+    document.getElementById("report-picker-list").innerHTML = rs.map(r => `
+        <button class="rp-item ${r.correct ? "" : "wrong"}" onclick="pickReport(${r.idx}, this)">
+            <span class="rp-q">Q${r.idx}. ${esc(r.question)}</span>
+            <span class="rp-you">내 답: ${esc(r.user_ans)} ${r.correct ? "✅" : "❌"}</span>
+        </button>`).join("");
+    document.getElementById("report-picker-modal").classList.remove("hidden");
+}
+function closeReportPicker(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById("report-picker-modal").classList.add("hidden");
+}
+async function pickReport(idx, btn) {
+    btn.disabled = true;
+    try {
+        await api(`/api/attempts/${reportState.attemptId}/report-grade`, { method: "POST", body: { idx } });
+        btn.classList.add("done");
+        const y = btn.querySelector(".rp-you"); if (y) y.textContent = "✅ 신고 접수 — 감사합니다!";
+    } catch (e) { btn.disabled = false; toastErr(e.message); }
 }
 
 async function loadHistory(examId) {
@@ -1886,7 +1912,46 @@ function openProfile() {
     if (pref) pref.value = u.explain_lang || "ko";
     renderExplainLangPicker(u.explain_lang || "ko");
     renderOnDeviceSettings(); // 온디바이스 AI 섹션: 상태에 따라 다운로드/삭제 버튼
+    loadAdminPanel();         // 관리자면 파일럿 데이터 콘솔 표시
     document.getElementById("profile-modal").classList.remove("hidden");
+}
+
+// 관리자 콘솔: 파일럿 데이터(모드 분포·온디바이스 성공률·오채점 신고) — 관리자에게만
+async function loadAdminPanel() {
+    const sec = document.getElementById("admin-section");
+    if (!sec) return;
+    if (!(CURRENT_USER && CURRENT_USER.is_admin)) { sec.classList.add("hidden"); return; }
+    sec.classList.remove("hidden");
+    const body = document.getElementById("admin-body");
+    body.innerHTML = `<p class="muted">불러오는 중…</p>`;
+    try {
+        const d = await api("/api/admin/pilot");
+        const modeStr = Object.entries(d.modes || {}).map(([k, v]) => `${k}: ${v}`).join(" · ") || "—";
+        const rows = (d.reports || []).map(r => `
+            <tr>
+                <td>${esc(r.word || "")}</td>
+                <td>${esc(r.student_ans || "")}</td>
+                <td>${r.model_correct ? "정답처리" : "오답처리"}</td>
+                <td>${esc(r.graded_by || "")}</td>
+                <td class="muted">${esc((r.email || "").split("@")[0])}</td>
+                <td class="muted">${esc((r.created_at || "").slice(5, 16))}</td>
+            </tr>`).join("");
+        body.innerHTML = `
+            <div class="admin-stats">
+                <div><b>${d.participants}</b><span>참가자</span></div>
+                <div><b>${d.total_attempts}</b><span>총 응시</span></div>
+                <div><b>${d.ondevice_rate == null ? "—" : d.ondevice_rate + "%"}</b><span>온디바이스 성공률</span></div>
+                <div><b>${d.report_count}</b><span>오채점 신고</span></div>
+            </div>
+            <p class="muted" style="margin:10px 0 6px">채점 모드 분포: ${esc(modeStr)}</p>
+            <div class="admin-table-wrap"><table class="admin-table">
+                <thead><tr><th>단어</th><th>학생 답</th><th>모델 판정</th><th>모드</th><th>학생</th><th>시각</th></tr></thead>
+                <tbody>${rows || `<tr><td colspan="6" class="muted">아직 신고 없음</td></tr>`}</tbody>
+            </table></div>`;
+    } catch (e) {
+        if (/403/.test(e.message)) { sec.classList.add("hidden"); return; }
+        body.innerHTML = `<p class="muted">불러오기 실패: ${esc(e.message)}</p>`;
+    }
 }
 
 // 문제·해설 언어: 플래그 칩 선택 UI

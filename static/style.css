@@ -1612,3 +1612,42 @@ input[type="radio"]:focus-visible { box-shadow: 0 0 0 3px rgba(41,121,255,.2); }
 .settings-stack { display: flex; flex-direction: column; gap: 16px; height: 100%; }
 .settings-stack > .settings-block:last-child { flex: 1; }
 .settings-block.compact { padding: 14px 16px 16px; }
+
+/* 채점 신고 버튼 (파일럿) */
+.rq-report {
+    margin-top: 8px; padding: 4px 10px; font-size: 12px;
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+}
+.rq-report:hover { color: var(--red); border-color: var(--red); }
+.rq-report.done { color: var(--green); border-color: var(--green); cursor: default; }
+
+/* 채점 신고 플로팅 버튼 (우측 하단) */
+.report-fab {
+    position: fixed; right: 22px; bottom: 22px; z-index: 900;
+    padding: 12px 18px; border: none; border-radius: 999px;
+    background: var(--accent); color: #fff; font-size: 14px; font-weight: 700;
+    box-shadow: 0 6px 20px rgba(108, 92, 231, .4); cursor: pointer;
+}
+.report-fab:hover { background: var(--accent-dark); transform: translateY(-1px); }
+.report-picker-list { display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow-y: auto; }
+.rp-item {
+    display: flex; flex-direction: column; gap: 2px; text-align: left;
+    padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--card-2); color: var(--text); cursor: pointer;
+}
+.rp-item:hover { border-color: var(--accent); }
+.rp-item.wrong { border-left: 3px solid var(--red); }
+.rp-item.done { border-color: var(--green); cursor: default; }
+.rp-item .rp-q { font-weight: 600; }
+.rp-item .rp-you { font-size: 13px; color: var(--muted); }
+
+/* 관리자 콘솔 */
+.admin-stats { display: flex; gap: 12px; flex-wrap: wrap; }
+.admin-stats > div { flex: 1; min-width: 90px; background: var(--card-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px; text-align: center; }
+.admin-stats b { display: block; font-size: 20px; }
+.admin-stats span { font-size: 12px; color: var(--muted); }
+.admin-table-wrap { max-height: 320px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.admin-table th, .admin-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+.admin-table thead th { position: sticky; top: 0; background: var(--card); }

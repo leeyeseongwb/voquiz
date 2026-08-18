@@ -301,6 +301,7 @@ def grade(quiz, user_answers, report=None, ai_pregraded = None):
 
     # 주관식 문항 모으기 (AI 일괄 채점)
     written_idx = [i for i, q in enumerate(quiz) if q.get("type") == "written"]
+    graded_by = "local"  # 채점 방식 기록: local(주관식 없음) / ondevice / server(Gemini)
 
     # 1) 객관식 로컬 채점
     for i, q in enumerate(quiz):
@@ -327,11 +328,13 @@ def grade(quiz, user_answers, report=None, ai_pregraded = None):
             "correct_ans": quiz[i].get("answer", ""),
         } for i in written_idx]
 
-        # 분기: WebLLM 사용가능, 부락
+        # 분기: 온디바이스(ai_pregraded) 사용 가능하면 그걸, 아니면 서버(Gemini)
         if (ai_pregraded and len(ai_pregraded) == len(payload)):
             ai_results = ai_pregraded
+            graded_by = "ondevice"
         else:
             ai_results = _grade_written(payload)
+            graded_by = "server"
 
         for n, i in enumerate(written_idx):
             r = ai_results[n] if n < len(ai_results) else {"correct": False, "feedback": ""}
@@ -348,7 +351,7 @@ def grade(quiz, user_answers, report=None, ai_pregraded = None):
     score = round(correct / total * 100) if total else 0
     if report:
         report(100, "채점 완료", f"🎯 {correct}/{total} 정답 ({score}%)")
-    return {"score": score, "correct": correct, "total": total, "results": results}
+    return {"score": score, "correct": correct, "total": total, "results": results, "graded_by": graded_by}
 
 # 이 부분을 온디바이스로 사용하게 되는 경우 프롬프트 만들기, 모델 전송 및 결과 값 리턴 2가지 함수로 나뉘어진다.
 def _grade_written(payload):

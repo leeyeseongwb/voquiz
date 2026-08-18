@@ -129,8 +129,24 @@ CREATE TABLE IF NOT EXISTS attempts (
     total       INTEGER NOT NULL,
     time_taken  INTEGER DEFAULT 0,    -- 소요 시간(초)
     results     TEXT NOT NULL,        -- 문항별 채점 결과 JSON
+    graded_by   TEXT DEFAULT '',      -- 채점 방식: local / ondevice / server (파일럿 계측)
     created_at  TEXT NOT NULL,
     FOREIGN KEY (exam_id) REFERENCES exams(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 파일럿: 학생이 "이 채점 이상해요"라고 신고한 문항 (AI 오채점 실사례 수집)
+CREATE TABLE IF NOT EXISTS grade_reports (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    attempt_id    INTEGER NOT NULL,
+    user_id       INTEGER NOT NULL,
+    idx           INTEGER,            -- 문항 번호(1-based)
+    word          TEXT,
+    student_ans   TEXT,
+    correct_ans   TEXT,
+    model_correct INTEGER,            -- 모델이 매긴 정오 (1/0)
+    graded_by     TEXT,               -- ondevice / server
+    created_at    TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -273,6 +289,11 @@ def _migrate():
             conn.execute("ALTER TABLE users ADD COLUMN provider TEXT DEFAULT 'local'")
         if "explain_lang" not in cols:  # 문제·해설 언어 기본값 (ko/en/ja/zh...)
             conn.execute("ALTER TABLE users ADD COLUMN explain_lang TEXT DEFAULT 'ko'")
+
+        # 응시 기록: 채점 방식(local/ondevice/server) — 파일럿 계측용
+        at_cols = {row["name"] for row in conn.execute("PRAGMA table_info(attempts)")}
+        if "graded_by" not in at_cols:
+            conn.execute("ALTER TABLE attempts ADD COLUMN graded_by TEXT DEFAULT ''")
 
         # 단어장 언어 (en=영어, zh=중국어)
         wb_cols = {row["name"] for row in conn.execute("PRAGMA table_info(wordbooks)")}
