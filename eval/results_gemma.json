@@ -1,0 +1,402 @@
+[
+  {
+    "id": 1,
+    "word": "Conversely",
+    "student_ans": "반대로, 대조적으로",
+    "category": "exact",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 2,
+    "word": "Conversely",
+    "student_ans": "역으로",
+    "category": "synonym",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": false,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 3,
+    "word": "Conversely",
+    "student_ans": "반대로",
+    "category": "partial",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 4,
+    "word": "Conversely",
+    "student_ans": "게다가",
+    "category": "wrong",
+    "human": false,
+    "gemini": false,
+    "gemma_incontext": false,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 5,
+    "word": "Trajectory",
+    "student_ans": "궤적, 경로",
+    "category": "exact",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 6,
+    "word": "Trajectory",
+    "student_ans": "이동 경로",
+    "category": "synonym",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": null,
+    "gemma_solo_forced": true
+  },
+  {
+    "id": 7,
+    "word": "Trajectory",
+    "student_ans": "괘적",
+    "category": "typo",
+    "human": true,
+    "gemini": false,
+    "gemma_incontext": null,
+    "gemma_solo_forced": true
+  },
+  {
+    "id": 8,
+    "word": "Trajectory",
+    "student_ans": "속도",
+    "category": "wrong",
+    "human": false,
+    "gemini": false,
+    "gemma_incontext": null,
+    "gemma_solo_forced": true
+  },
+  {
+    "id": 9,
+    "word": "Momentous",
+    "student_ans": "중대한",
+    "category": "exact",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": null,
+    "gemma_solo_forced": true
+  },
+  {
+    "id": 10,
+    "word": "Momentous",
+    "student_ans": "매우 중요한",
+    "category": "synonym",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": null,
+    "gemma_solo_forced": true
+  },
+  {
+    "id": 11,
+    "word": "Momentous",
+    "student_ans": "순간적인",
+    "category": "wrong",
+    "human": false,
+    "gemini": false,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 12,
+    "word": "Benevolent",
+    "student_ans": "자애로운",
+    "category": "exact",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 13,
+    "word": "Benevolent",
+    "student_ans": "인자한",
+    "category": "synonym",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 14,
+    "word": "Benevolent",
+    "student_ans": "사나운",
+    "category": "wrong",
+    "human": false,
+    "gemini": false,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 15,
+    "word": "Genuine",
+    "student_ans": "진짜의",
+    "category": "exact",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 16,
+    "word": "Genuine",
+    "student_ans": "진실된",
+    "category": "synonym",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": null,
+    "gemma_solo_forced": true
+  },
+  {
+    "id": 17,
+    "word": "Genuine",
+    "student_ans": "가짜의",
+    "category": "wrong",
+    "human": false,
+    "gemini": false,
+    "gemma_incontext": null,
+    "gemma_solo_forced": true
+  },
+  {
+    "id": 18,
+    "word": "Ephemeral",
+    "student_ans": "순식간의",
+    "category": "exact",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": null,
+    "gemma_solo_forced": true
+  },
+  {
+    "id": 19,
+    "word": "Ephemeral",
+    "student_ans": "덧없는",
+    "category": "synonym",
+    "human": false,
+    "gemini": true,
+    "gemma_incontext": null,
+    "gemma_solo_forced": true
+  },
+  {
+    "id": 20,
+    "word": "Ephemeral",
+    "student_ans": "영원한",
+    "category": "wrong",
+    "human": false,
+    "gemini": false,
+    "gemma_incontext": null,
+    "gemma_solo_forced": true
+  },
+  {
+    "id": 21,
+    "word": "Counterintuitive",
+    "student_ans": "직관에 반하는",
+    "category": "exact",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 22,
+    "word": "Counterintuitive",
+    "student_ans": "예상과 반대되는",
+    "category": "synonym",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 23,
+    "word": "Counterintuitive",
+    "student_ans": "직관적인",
+    "category": "wrong",
+    "human": false,
+    "gemini": false,
+    "gemma_incontext": false,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 24,
+    "word": "Exploiting",
+    "student_ans": "착취하는",
+    "category": "exact",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 25,
+    "word": "Exploiting",
+    "student_ans": "부당하게 이용하는",
+    "category": "synonym",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 26,
+    "word": "Exploiting",
+    "student_ans": "보호하는",
+    "category": "wrong",
+    "human": false,
+    "gemini": false,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 27,
+    "word": "Frivolous",
+    "student_ans": "경솔한",
+    "category": "exact",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": false,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 28,
+    "word": "Frivolous",
+    "student_ans": "하찮은",
+    "category": "synonym",
+    "human": false,
+    "gemini": true,
+    "gemma_incontext": false,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 29,
+    "word": "Frivolous",
+    "student_ans": "심각한",
+    "category": "wrong",
+    "human": false,
+    "gemini": false,
+    "gemma_incontext": false,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 30,
+    "word": "Inquiry",
+    "student_ans": "조사",
+    "category": "partial",
+    "human": false,
+    "gemini": true,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 31,
+    "word": "Inquiry",
+    "student_ans": "문의",
+    "category": "synonym",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": null,
+    "gemma_solo_forced": true
+  },
+  {
+    "id": 32,
+    "word": "Inquiry",
+    "student_ans": "대답",
+    "category": "wrong",
+    "human": false,
+    "gemini": false,
+    "gemma_incontext": null,
+    "gemma_solo_forced": true
+  },
+  {
+    "id": 33,
+    "word": "Legitimacy",
+    "student_ans": "정당성",
+    "category": "exact",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": null,
+    "gemma_solo_forced": true
+  },
+  {
+    "id": 34,
+    "word": "Legitimacy",
+    "student_ans": "합법성",
+    "category": "borderline",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": null,
+    "gemma_solo_forced": true
+  },
+  {
+    "id": 35,
+    "word": "Legitimacy",
+    "student_ans": "복잡성",
+    "category": "wrong",
+    "human": false,
+    "gemini": false,
+    "gemma_incontext": null,
+    "gemma_solo_forced": true
+  },
+  {
+    "id": 36,
+    "word": "Norms",
+    "student_ans": "규범",
+    "category": "exact",
+    "human": true,
+    "gemini": true,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 37,
+    "word": "Norms",
+    "student_ans": "표준",
+    "category": "borderline",
+    "human": false,
+    "gemini": true,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 38,
+    "word": "Norms",
+    "student_ans": "예외",
+    "category": "wrong",
+    "human": false,
+    "gemini": false,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 39,
+    "word": "Genuine",
+    "student_ans": "",
+    "category": "empty",
+    "human": false,
+    "gemini": false,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  },
+  {
+    "id": 40,
+    "word": "Momentous",
+    "student_ans": "",
+    "category": "empty",
+    "human": false,
+    "gemini": false,
+    "gemma_incontext": true,
+    "gemma_solo_forced": null
+  }
+]

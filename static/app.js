@@ -83,6 +83,8 @@ async function downloadLLM() {
     } else {
         toastErr("온디바이스 AI를 불러오지 못했어요. 채점 시 서버로 진행돼요.");
     }
+    updateModeStatus();       // 배지 갱신 (Gemini → 온디바이스)
+    renderOnDeviceSettings(); // 설정 버튼 갱신 (다운로드 → 삭제)
 }
 function dismissLLMBanner() {
     _llmBannerDismissed = true; // 이번 세션 동안만 숨김
@@ -96,11 +98,15 @@ async function loadGradeConfig() {
     try { gradeConfig = await api("/api/grade-config"); } catch (_) {}
     updateModeStatus();
 }
+// 온디바이스가 '실제로 준비(다운로드)됐는지' — 배지·채점·설정이 이걸 기준으로 함
+function isOnDeviceReady() {
+    return !!navigator.gpu && window.isOnDeviceAIReady && window.isOnDeviceAIReady();
+}
 function updateModeStatus() {
     const el = document.getElementById("mode-status");
     if (!el) return;
     el.removeAttribute("title"); // 네이티브 툴팁 대신 커스텀 인앱 팝업 사용
-    if (navigator.gpu) {
+    if (isOnDeviceReady()) {
         el.className = "mode-status ondevice";
         el.innerHTML = `<span class="ms-label">🧠 온디바이스 AI</span>
             <div class="mode-tip">
@@ -112,18 +118,36 @@ function updateModeStatus() {
         el.className = "mode-status gemini";
         const lim = gradeConfig.gemini_daily_limit, used = gradeConfig.gemini_used_today;
         const limTxt = (lim != null) ? `하루 ${lim}문제 제한 (오늘 ${used ?? 0}문제 사용)` : "하루 사용량 제한이 있어요";
+        const rec = navigator.gpu
+            ? "온디바이스 AI를 <b>다운로드</b>하면 무제한·비공개로 채점돼요 (설정 또는 상단 배너)"
+            : "이 기기는 온디바이스 AI(WebGPU)를 지원하지 않아요";
         el.innerHTML = `<span class="ms-label">☁️ Gemini <span class="ms-warn">· 사용량 제한</span></span>
             <div class="mode-tip">
                 <b>☁️ Gemini (서버 채점)</b>
                 <ul><li>${limTxt} — 유료 API 비용 때문</li>
-                    <li>제한 없는 <b>온디바이스 AI</b> 사용을 권장해요</li></ul>
+                    <li>${rec}</li></ul>
             </div>`;
+    }
+}
+// 설정의 온디바이스 AI 섹션: 상태에 따라 다운로드/삭제/미지원 안내
+function renderOnDeviceSettings() {
+    const box = document.getElementById("ondevice-settings-body");
+    if (!box) return;
+    if (isOnDeviceReady()) {
+        box.innerHTML = `<button class="btn-ghost danger" style="width:100%" onclick="clearOnDeviceAI()">🗑 온디바이스 AI 모델 캐시 삭제 (약 1.4GB)</button>
+            <p class="muted" style="margin-top:8px">브라우저에 저장된 온디바이스 AI 모델을 삭제해요. 저장 공간을 비우거나 온디바이스 채점을 끄고 싶을 때 사용하세요. 삭제 후에는 서버 Gemini로 채점돼요 (하루 한도 있음).</p>
+            <p style="margin-top:6px; font-size:12px; color:var(--red)">⚠️ 자주 지웠다 다시 받으면 모델 서버가 일시적으로 요청을 제한(429)할 수 있어요. 꼭 필요할 때만 지우세요.</p>`;
+    } else if (navigator.gpu) {
+        box.innerHTML = `<button class="btn-primary" style="width:100%" onclick="downloadLLM()">⬇️ 온디바이스 AI 다운로드 (약 1.4GB)</button>
+            <p class="muted" style="margin-top:8px">지금 받아두면 주관식 답안을 이 기기 안에서 채점해요 (무료·무제한·비공개). 처음 한 번만 내려받으면 돼요.</p>`;
+    } else {
+        box.innerHTML = `<p class="muted">이 기기는 온디바이스 AI(WebGPU)를 지원하지 않아 서버 Gemini로 채점돼요. 최신 Chrome/Edge 등 지원 브라우저에서 사용할 수 있어요.</p>`;
     }
 }
 // 설정: 온디바이스 AI 모델 캐시 삭제 (저장공간 비우기 / 온디바이스 끄기)
 async function clearOnDeviceAI() {
     if (!await showConfirm("온디바이스 AI 캐시 삭제",
-        "온디바이스 AI 모델 캐시(약 1.4GB)를 삭제할까요?\n이후 채점은 서버 Gemini로 진행돼요 (하루 한도 있음).",
+        "온디바이스 AI 모델 캐시(약 1.4GB)를 삭제할까요?\n이후 채점은 서버 Gemini로 진행돼요 (하루 한도 있음).\n\n⚠️ 자주 지웠다 다시 받으면 모델 서버가 일시적으로 요청을 제한(429)할 수 있어요.",
         { okText: "삭제", danger: true })) return;
     try {
         if (window.caches) {
@@ -134,8 +158,9 @@ async function clearOnDeviceAI() {
         window.resetOnDeviceAI && window.resetOnDeviceAI(); // 메모리 엔진 해제
         _llmBannerDismissed = false;                        // 배너 다시 뜰 수 있게
         toast("온디바이스 AI 모델 캐시를 삭제했어요.", "success");
-        updateModeStatus();
-        maybeShowLLMBanner();
+        updateModeStatus();       // 배지 갱신 (온디바이스 → Gemini)
+        renderOnDeviceSettings(); // 설정 버튼 갱신 (삭제 → 다운로드)
+        maybeShowLLMBanner();     // 다운로드 배너 다시 표시
     } catch (e) { toastErr("삭제 실패: " + e.message); }
 }
 
@@ -1554,8 +1579,8 @@ async function submitExam() { // 자동으로 전역이 됨.
 
         // 온디바이스 채점 호출
         let ai_pregraded = null;
-        // 주관식이 있으면 온디바이스 채점 시도 (WebGPU 없으면 gradeWrittenOnDevice가 null → 서버 Gemini)
-        if (payload.length > 0){
+        // 온디바이스 모델이 준비(다운로드)됐을 때만 온디바이스 채점. 아니면 서버 Gemini로.
+        if (payload.length > 0 && isOnDeviceReady()){
             ai_pregraded = await gradeWrittenOnDevice(payload);
         }
 
@@ -1860,6 +1885,7 @@ function openProfile() {
     const pref = document.getElementById("pref-explain-lang");
     if (pref) pref.value = u.explain_lang || "ko";
     renderExplainLangPicker(u.explain_lang || "ko");
+    renderOnDeviceSettings(); // 온디바이스 AI 섹션: 상태에 따라 다운로드/삭제 버튼
     document.getElementById("profile-modal").classList.remove("hidden");
 }
 

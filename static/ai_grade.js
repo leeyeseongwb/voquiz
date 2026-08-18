@@ -15,6 +15,8 @@ async function checkGPUSupport() { // async는 코드 안에 await를 해야하�
 
 // ===== 온디바이스 LLM 로딩 오버레이 제어 =====
 function _llmLoadingShow() {
+    document.getElementById("llm-loading-progress")?.classList.remove("hidden");
+    document.getElementById("llm-loading-error")?.classList.add("hidden");
     document.getElementById("llm-loading")?.classList.remove("hidden");
     _llmLoadingUpdate("시작하는 중…", 0);
 }
@@ -30,6 +32,21 @@ function _llmLoadingUpdate(text, progress) {
 function _llmLoadingHide() {
     document.getElementById("llm-loading")?.classList.add("hidden");
 }
+function _llmLoadingError(msg) { // 오버레이를 에러 상태로 전환 (다운로드 실패 시)
+    const errMsg = document.getElementById("llm-error-msg");
+    if (errMsg) errMsg.textContent = msg;
+    document.getElementById("llm-loading-progress")?.classList.add("hidden");
+    document.getElementById("llm-loading-error")?.classList.remove("hidden");
+    document.getElementById("llm-loading")?.classList.remove("hidden");
+}
+function _llmFriendlyError(err) { // 에러 종류에 따라 사람이 읽을 안내로 변환
+    const m = (err && (err.message || String(err))) || "";
+    if (/429|too many requests|request failed|failed to execute 'add' on 'cache'/i.test(m))
+        return "모델 서버 요청이 일시적으로 많아요 (GitHub 제한, 429). 10~30분 뒤에 다시 시도해 주세요. 그동안은 서버 Gemini로 채점돼요.";
+    if (/device lost|webgpu|adapter|gpu/i.test(m))
+        return "GPU 상태 문제로 로딩에 실패했어요. 페이지를 새로고침한 뒤 다시 시도해 주세요.";
+    return "온디바이스 AI 로딩에 실패했어요. 잠시 후 다시 시도해 주세요. 그동안은 서버 Gemini로 채점돼요.";
+}
 
 let _llmCancel = null; // 로딩 중일 때만 세팅되는 취소 트리거
 
@@ -37,7 +54,7 @@ function cancelLLMLoad() {
     if (_llmCancel) _llmCancel(); // 취소 버튼이 부름 → 로딩 대기를 중단
 }
 
-async function getEngine() {
+async function getEngine(showError = false) { // showError=true면 실패 시 오버레이에 안내(명시적 다운로드용)
     if (engine) return engine; // 이미 로딩된 엔진이 있으면 재사용 (로딩창 안 뜸)
     if (await checkGPUSupport()) {
         try {
@@ -61,7 +78,8 @@ async function getEngine() {
             return engine;
         } catch (err) {
             _llmCancel = null;
-            _llmLoadingHide();
+            if (showError) _llmLoadingError(_llmFriendlyError(err)); // 명시적 다운로드면 안내 표시
+            else _llmLoadingHide();                                  // 채점 중이면 조용히 서버 Gemini 폴백
             console.error("GPU는 있지만 로딩 실패:", err);
             return null; // GPU 있어도 실패하면 마찬가지로 룰 기반 폴백
         }
@@ -88,6 +106,29 @@ function buildPrompt(payload) {
 `;
     return prompt;
 }
+
+// 모델 응답에서 JSON 배열만 추출 (마크다운 코드펜스나 앞뒤 잡텍스트 제거)
+function extractJson(text) {
+    let t = (text || "").replace(/```(?:json)?/gi, "").replace(/```/g, ""); // 코드펜스 제거
+    const start = t.indexOf("[");
+    if (start === -1) return t.trim();
+    // 첫 '['부터 괄호 깊이를 세서 짝 맞는 ']'까지만 추출 (뒤에 붙는 설명/코드의 대괄호는 무시).
+    // 문자열 안의 대괄호는 세지 않도록 따옴표 상태를 추적한다.
+    let depth = 0, inStr = false, esc = false, end = -1;
+    for (let i = start; i < t.length; i++) {
+        const c = t[i];
+        if (inStr) {
+            if (esc) esc = false;
+            else if (c === "\\") esc = true;
+            else if (c === '"') inStr = false;
+        } else if (c === '"') inStr = true;
+        else if (c === "[") depth++;
+        else if (c === "]" && --depth === 0) { end = i; break; }
+    }
+    const json = (end === -1) ? t.slice(start) : t.slice(start, end + 1);
+    return json.replace(/,\s*([\]}])/g, "$1"); // 후행 콤마 제거 (Gemma가 종종 },] 로 붙임)
+}
+
 // 스코프(scope): 함수 안 변수는 호출 끝나면 사라진다 → 기억하려면 함수 밖에
 // 섀도잉: 안에서 다시 선언하면 바깥 변수를 가려버린다
 // 선언 vs 대입: 키워드 있으면 "새로 만들기", 없으면 "기존 것에 넣기"
@@ -95,7 +136,7 @@ function buildPrompt(payload) {
 
 window.gradeWrittenOnDevice = gradeWrittenOnDevice; // 갇혀있던 함수가 전역에 올라가 app.js가 gradeWrittenOnDevice()를 볼 수 있음.
 window.cancelLLMLoad = cancelLLMLoad;                         // 로딩 오버레이의 취소 버튼용
-window.prepareOnDeviceAI = async () => !!(await getEngine()); // 메인 배너에서 미리 다운로드용
+window.prepareOnDeviceAI = async () => !!(await getEngine(true)); // 배너/설정 다운로드 (실패 시 오버레이에 안내)
 window.hasWebGPU = () => !!navigator.gpu;                     // 배너를 보여줄지 판단
 window.isOnDeviceAIReady = () => localStorage.getItem("vocashot_llm_cached") === "1"; // 이미 받았나
 window.resetOnDeviceAI = () => { try { engine && engine.unload && engine.unload(); } catch (_) {} engine = null; }; // 캐시 삭제 시 메모리 엔진도 해제
@@ -119,9 +160,11 @@ async function gradeWrittenOnDevice(payload){ // 그 파일 안에 갇힘. app.j
             // 그러나 0은 거의 결정론적이다. 그렇기에 같은 답에서도 채점을 다르게 하는 것을 수정해준다.
         })
         let text = reply.choices[0].message.content;
-        let result = JSON.parse(text)
+        console.log("[온디바이스] 모델 원본 응답:", text);       // 진단용
+        let result = JSON.parse(extractJson(text));              // 펜스·잡텍스트 제거 후 파싱
         return result;
     } catch (err){
+        console.error("[온디바이스] 채점 실패(→ 서버 폴백):", err); // 왜 실패했는지 콘솔에 표시
         return null;
     }
     
