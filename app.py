@@ -754,6 +754,31 @@ def report_grade_issue(attempt_id: int, body: GradeReportBody, user=Depends(curr
     return {"status": "success"}
 
 
+class PilotDeviceBody(BaseModel):
+    webgpu: bool | None = None
+    model_loaded: bool | None = None
+    load_ms: int | None = None
+
+
+@app.post("/api/pilot/device")
+def pilot_device(body: PilotDeviceBody, request: Request, user=Depends(current_user)):
+    """참가자 기기/접근성 기록(WebGPU·모델로딩·로딩시간). 필드별 upsert."""
+    ua = (request.headers.get("user-agent") or "")[:300]
+    wb = None if body.webgpu is None else (1 if body.webgpu else 0)
+    ml = None if body.model_loaded is None else (1 if body.model_loaded else 0)
+    db.execute(
+        "INSERT INTO pilot_devices (user_id, webgpu, model_loaded, load_ms, user_agent, updated_at) "
+        "VALUES (?, ?, ?, ?, ?, ?) "
+        "ON CONFLICT(user_id) DO UPDATE SET "
+        "webgpu=COALESCE(excluded.webgpu, webgpu), "
+        "model_loaded=COALESCE(excluded.model_loaded, model_loaded), "
+        "load_ms=COALESCE(excluded.load_ms, load_ms), "
+        "user_agent=COALESCE(excluded.user_agent, user_agent), "
+        "updated_at=excluded.updated_at",
+        (user["id"], wb, ml, body.load_ms, ua, _now()), commit=True)
+    return {"status": "success"}
+
+
 @app.get("/api/admin/pilot")
 def admin_pilot(user=Depends(current_user)):
     """관리자 콘솔: 파일럿 데이터(채점 모드 분포·온디바이스 성공률·오채점 신고)."""
@@ -764,16 +789,47 @@ def admin_pilot(user=Depends(current_user)):
         "SELECT COALESCE(NULLIF(graded_by,''),'(none)') m, COUNT(*) c FROM attempts GROUP BY m")
     mode_map = {m["m"]: m["c"] for m in modes}
     on, sv = mode_map.get("ondevice", 0), mode_map.get("server", 0)
+    written = on + sv
+
+    # 기기/접근성 (IRR '접근 격차' 실증)
+    devices = db.query_all(
+        "SELECT d.user_id, d.webgpu, d.model_loaded, d.load_ms, d.user_agent, u.email "
+        "FROM pilot_devices d LEFT JOIN users u ON u.id=d.user_id ORDER BY d.updated_at DESC")
+    load_times = [d["load_ms"] for d in devices if d["load_ms"]]
+    device = {
+        "total": len(devices),
+        "webgpu_yes": sum(1 for d in devices if d["webgpu"]),
+        "loaded_yes": sum(1 for d in devices if d["model_loaded"]),
+        "avg_load_s": round(sum(load_times) / len(load_times) / 1000, 1) if load_times else None,
+        "list": devices,
+    }
+
+    # 참가자별 집계
+    per = db.query_all(
+        "SELECT a.user_id, u.email, COUNT(*) attempts, "
+        "SUM(CASE WHEN a.graded_by='ondevice' THEN 1 ELSE 0 END) ondevice, "
+        "SUM(CASE WHEN a.graded_by='server' THEN 1 ELSE 0 END) server, "
+        "ROUND(AVG(a.score)) avg_score "
+        "FROM attempts a LEFT JOIN users u ON u.id=a.user_id GROUP BY a.user_id ORDER BY attempts DESC")
+    rep_by_user = {r["user_id"]: r["c"] for r in db.query_all(
+        "SELECT user_id, COUNT(*) c FROM grade_reports GROUP BY user_id")}
+    for p in per:
+        p["reports"] = rep_by_user.get(p["user_id"], 0)
+
     reports = db.query_all(
         "SELECT gr.idx, gr.word, gr.student_ans, gr.correct_ans, gr.model_correct, gr.graded_by, "
         "gr.comment, gr.created_at, u.email FROM grade_reports gr LEFT JOIN users u ON u.id=gr.user_id "
         "ORDER BY gr.created_at DESC LIMIT 300")
     return {
         "modes": mode_map,
-        "ondevice_rate": round(on / (on + sv) * 100) if (on + sv) else None,
+        "ondevice_rate": round(on / written * 100) if written else None,
+        "written_attempts": written,
+        "gemini_fallback": sv,
         "total_attempts": db.query_one("SELECT COUNT(*) c FROM attempts")["c"],
         "participants": db.query_one("SELECT COUNT(DISTINCT user_id) c FROM attempts")["c"],
         "report_count": db.query_one("SELECT COUNT(*) c FROM grade_reports")["c"],
+        "device": device,
+        "per_participant": per,
         "reports": reports,
     }
 

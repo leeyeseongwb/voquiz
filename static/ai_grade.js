@@ -48,6 +48,12 @@ function _llmFriendlyError(err) { // 에러 종류에 따라 사람이 읽을 �
     return "온디바이스 AI 로딩에 실패했어요. 잠시 후 다시 시도해 주세요. 그동안은 서버 Gemini로 채점돼요.";
 }
 
+// 파일럿 계측: 모델 로딩 성공/실패·시간을 서버에 기록
+function _reportDevice(data) {
+    fetch("/api/pilot/device", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data) }).catch(() => {});
+}
+
 let _llmCancel = null; // 로딩 중일 때만 세팅되는 취소 트리거
 
 function cancelLLMLoad() {
@@ -59,6 +65,7 @@ async function getEngine(showError = false) { // showError=true면 실패 시 �
     if (await checkGPUSupport()) {
         try {
             _llmLoadingShow(); // 로딩 오버레이 표시
+            const _t0 = performance.now(); // 로딩 시간 측정(파일럿)
             // 취소 지원: 로딩 완료 vs 사용자 취소 중 먼저 끝나는 것을 기다림
             const cancelPromise = new Promise((resolve) => { _llmCancel = () => resolve("__CANCELLED__"); });
             const loadPromise = CreateMLCEngine("gemma-2-2b-it-q4f16_1-MLC", { // GPU 지원시 엔진 로딩
@@ -74,12 +81,14 @@ async function getEngine(showError = false) { // showError=true면 실패 시 �
             }
             engine = result;
             localStorage.setItem("vocashot_llm_cached", "1"); // 다운로드 완료 표시(배너 숨김용)
+            _reportDevice({ model_loaded: true, load_ms: Math.round(performance.now() - _t0) }); // 계측
             console.log("로딩 완료!");
             return engine;
         } catch (err) {
             _llmCancel = null;
             if (showError) _llmLoadingError(_llmFriendlyError(err)); // 명시적 다운로드면 안내 표시
             else _llmLoadingHide();                                  // 채점 중이면 조용히 서버 Gemini 폴백
+            _reportDevice({ model_loaded: false }); // 계측: 로딩 실패
             console.error("GPU는 있지만 로딩 실패:", err);
             return null; // GPU 있어도 실패하면 마찬가지로 룰 기반 폴백
         }

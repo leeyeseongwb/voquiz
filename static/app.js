@@ -260,6 +260,9 @@ async function enterApp() {
     const me = await api("/api/me");
     CURRENT_USER = me;
     renderUserChip();
+    // 파일럿 계측: WebGPU 지원 여부 기록 (접근 격차 데이터)
+    fetch("/api/pilot/device", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ webgpu: !!navigator.gpu }) }).catch(() => {});
     document.getElementById("nav-admin")?.classList.toggle("hidden", !me.is_admin); // 관리자 메뉴는 관리자만
     document.getElementById("view-auth").classList.add("hidden");
     document.getElementById("view-app").classList.remove("hidden");
@@ -1940,28 +1943,58 @@ async function loadAdminPanel() {
     body.innerHTML = `<p class="muted">불러오는 중…</p>`;
     try {
         const d = await api("/api/admin/pilot");
+        const dev = d.device || {};
         const modeStr = Object.entries(d.modes || {}).map(([k, v]) => `${k}: ${v}`).join(" · ") || "—";
-        const rows = (d.reports || []).map(r => `
-            <tr>
-                <td>${esc(r.word || "")}</td>
-                <td>${esc(r.student_ans || "")}</td>
-                <td>${r.model_correct ? "정답처리" : "오답처리"}</td>
-                <td>${esc(r.graded_by || "")}</td>
-                <td>${esc(r.comment || "")}</td>
-                <td class="muted">${esc((r.email || "").split("@")[0])}</td>
-                <td class="muted">${esc((r.created_at || "").slice(5, 16))}</td>
-            </tr>`).join("");
+        const stat = (v, label) => `<div><b>${v}</b><span>${label}</span></div>`;
+
+        const devRows = (dev.list || []).map(x => `
+            <tr><td>${esc((x.email || "").split("@")[0])}</td>
+                <td>${x.webgpu == null ? "—" : (x.webgpu ? "✅" : "❌")}</td>
+                <td>${x.model_loaded == null ? "—" : (x.model_loaded ? "✅" : "❌")}</td>
+                <td>${x.load_ms ? Math.round(x.load_ms / 1000) + "초" : "—"}</td>
+                <td class="muted">${esc((x.user_agent || "").slice(0, 55))}</td></tr>`).join("");
+        const perRows = (d.per_participant || []).map(p => `
+            <tr><td>${esc((p.email || "").split("@")[0])}</td>
+                <td>${p.attempts}</td><td>${p.ondevice || 0}</td><td>${p.server || 0}</td>
+                <td>${p.avg_score == null ? "—" : p.avg_score + "%"}</td><td>${p.reports || 0}</td></tr>`).join("");
+        const repRows = (d.reports || []).map(r => `
+            <tr><td>${esc(r.word || "")}</td><td>${esc(r.student_ans || "")}</td>
+                <td>${r.model_correct ? "정답처리" : "오답처리"}</td><td>${esc(r.graded_by || "")}</td>
+                <td>${esc(r.comment || "")}</td><td class="muted">${esc((r.email || "").split("@")[0])}</td>
+                <td class="muted">${esc((r.created_at || "").slice(5, 16))}</td></tr>`).join("");
+
         body.innerHTML = `
             <div class="admin-stats">
-                <div><b>${d.participants}</b><span>참가자</span></div>
-                <div><b>${d.total_attempts}</b><span>총 응시</span></div>
-                <div><b>${d.ondevice_rate == null ? "—" : d.ondevice_rate + "%"}</b><span>온디바이스 성공률</span></div>
-                <div><b>${d.report_count}</b><span>오채점 신고</span></div>
+                ${stat(d.participants, "참가자")}
+                ${stat(d.total_attempts, "총 응시")}
+                ${stat(d.written_attempts, "주관식 응시")}
+                ${stat(d.ondevice_rate == null ? "—" : d.ondevice_rate + "%", "온디바이스 성공률")}
+                ${stat(d.gemini_fallback, "Gemini 폴백")}
+                ${stat(d.report_count, "오채점 신고")}
             </div>
-            <p class="muted" style="margin:10px 0 6px">채점 모드 분포: ${esc(modeStr)}</p>
+
+            <h4 class="admin-h">📱 기기 · 접근성 <span class="muted" style="font-weight:400">— IRR '접근 격차' 실증</span></h4>
+            <div class="admin-stats">
+                ${stat(dev.total || 0, "기록된 기기")}
+                ${stat((dev.webgpu_yes || 0) + " / " + (dev.total || 0), "WebGPU 지원")}
+                ${stat((dev.loaded_yes || 0) + " / " + (dev.total || 0), "모델 로딩 성공")}
+                ${stat(dev.avg_load_s == null ? "—" : dev.avg_load_s + "초", "평균 로딩")}
+            </div>
             <div class="admin-table-wrap"><table class="admin-table">
-                <thead><tr><th>단어</th><th>학생 답</th><th>모델 판정</th><th>모드</th><th>설명</th><th>학생</th><th>시각</th></tr></thead>
-                <tbody>${rows || `<tr><td colspan="7" class="muted">아직 신고 없음</td></tr>`}</tbody>
+                <thead><tr><th>참가자</th><th>WebGPU</th><th>로딩</th><th>시간</th><th>브라우저/OS</th></tr></thead>
+                <tbody>${devRows || `<tr><td colspan="5" class="muted">기기 기록 없음</td></tr>`}</tbody>
+            </table></div>
+
+            <h4 class="admin-h">👥 참가자별</h4>
+            <div class="admin-table-wrap"><table class="admin-table">
+                <thead><tr><th>참가자</th><th>응시</th><th>온디바이스</th><th>서버</th><th>평균</th><th>신고</th></tr></thead>
+                <tbody>${perRows || `<tr><td colspan="6" class="muted">응시 없음</td></tr>`}</tbody>
+            </table></div>
+
+            <h4 class="admin-h">🚩 오채점 신고 <span class="muted" style="font-weight:400">· 모드 분포: ${esc(modeStr)}</span></h4>
+            <div class="admin-table-wrap"><table class="admin-table">
+                <thead><tr><th>단어</th><th>학생 답</th><th>모델 판정</th><th>모드</th><th>설명</th><th>참가자</th><th>시각</th></tr></thead>
+                <tbody>${repRows || `<tr><td colspan="7" class="muted">아직 신고 없음</td></tr>`}</tbody>
             </table></div>`;
     } catch (e) {
         body.innerHTML = `<p class="muted">불러오기 실패: ${esc(e.message)}</p>`;

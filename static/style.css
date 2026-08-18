@@ -1659,6 +1659,8 @@ input[type="radio"]:focus-visible { box-shadow: 0 0 0 3px rgba(41,121,255,.2); }
 .admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .admin-table th, .admin-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
 .admin-table thead th { position: sticky; top: 0; background: var(--card); }
+.admin-h { margin: 20px 0 8px; font-size: 15px; }
+.admin-table td { max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
 
 /* 신고 문항 선택 강조 */
 .rp-item.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }

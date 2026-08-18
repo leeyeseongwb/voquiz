@@ -135,6 +135,17 @@ CREATE TABLE IF NOT EXISTS attempts (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- 파일럿: 참가자 기기/접근성 (WebGPU 지원·모델 로딩 성공·로딩 시간) — IRR '접근 격차' 실증용
+CREATE TABLE IF NOT EXISTS pilot_devices (
+    user_id      INTEGER PRIMARY KEY,
+    webgpu       INTEGER,             -- WebGPU 지원 1/0
+    model_loaded INTEGER,             -- 온디바이스 모델 로딩 성공 1/0
+    load_ms      INTEGER,             -- 로딩 소요 시간(ms)
+    user_agent   TEXT,                -- 브라우저/OS
+    updated_at   TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- 파일럿: 학생이 "이 채점 이상해요"라고 신고한 문항 (AI 오채점 실사례 수집)
 CREATE TABLE IF NOT EXISTS grade_reports (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
