@@ -146,6 +146,7 @@ CREATE TABLE IF NOT EXISTS grade_reports (
     correct_ans   TEXT,
     model_correct INTEGER,            -- 모델이 매긴 정오 (1/0)
     graded_by     TEXT,               -- ondevice / server
+    comment       TEXT DEFAULT '',    -- 학생이 남긴 설명
     created_at    TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -294,6 +295,11 @@ def _migrate():
         at_cols = {row["name"] for row in conn.execute("PRAGMA table_info(attempts)")}
         if "graded_by" not in at_cols:
             conn.execute("ALTER TABLE attempts ADD COLUMN graded_by TEXT DEFAULT ''")
+
+        # 채점 신고: 학생 설명 컬럼
+        gr_cols = {row["name"] for row in conn.execute("PRAGMA table_info(grade_reports)")}
+        if gr_cols and "comment" not in gr_cols:
+            conn.execute("ALTER TABLE grade_reports ADD COLUMN comment TEXT DEFAULT ''")
 
         # 단어장 언어 (en=영어, zh=중국어)
         wb_cols = {row["name"] for row in conn.execute("PRAGMA table_info(wordbooks)")}

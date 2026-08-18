@@ -1651,3 +1651,15 @@ input[type="radio"]:focus-visible { box-shadow: 0 0 0 3px rgba(41,121,255,.2); }
 .admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .admin-table th, .admin-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
 .admin-table thead th { position: sticky; top: 0; background: var(--card); }
+
+/* 신고 문항 선택 강조 */
+.rp-item.sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+
+/* AI 튜터 채팅 */
+.chat-card { display: flex; flex-direction: column; }
+.chat-messages { display: flex; flex-direction: column; gap: 10px; min-height: 300px; max-height: 55vh; overflow-y: auto; padding: 10px 4px; }
+.chat-bubble { max-width: 80%; padding: 10px 14px; border-radius: 14px; white-space: pre-wrap; line-height: 1.5; font-size: 14px; }
+.chat-bubble.user { align-self: flex-end; background: var(--primary); color: #fff; border-bottom-right-radius: 4px; }
+.chat-bubble.assistant { align-self: flex-start; background: var(--card-2); color: var(--text); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+.chat-input-row { display: flex; gap: 8px; margin-top: 12px; }
+.chat-input-row input { flex: 1; padding: 11px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--card-2); color: var(--text); }

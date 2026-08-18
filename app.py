@@ -730,7 +730,8 @@ def get_attempt(attempt_id: int, user=Depends(current_user)):
 
 
 class GradeReportBody(BaseModel):
-    idx: int  # 신고할 문항 번호 (results의 idx, 1-based)
+    idx: int           # 신고할 문항 번호 (results의 idx, 1-based)
+    comment: str = ""  # 학생이 남긴 설명(선택)
 
 
 @app.post("/api/attempts/{attempt_id}/report-grade")
@@ -745,9 +746,10 @@ def report_grade_issue(attempt_id: int, body: GradeReportBody, user=Depends(curr
         raise HTTPException(400, "문항을 찾을 수 없습니다.")
     db.execute(
         "INSERT INTO grade_reports (attempt_id, user_id, idx, word, student_ans, correct_ans, "
-        "model_correct, graded_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "model_correct, graded_by, comment, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (attempt_id, user["id"], body.idx, item.get("question", ""), item.get("user_ans", ""),
-         item.get("correct_ans", ""), 1 if item.get("correct") else 0, att["graded_by"], _now()),
+         item.get("correct_ans", ""), 1 if item.get("correct") else 0, att["graded_by"],
+         (body.comment or "").strip()[:1000], _now()),
         commit=True)
     return {"status": "success"}
 
@@ -764,7 +766,7 @@ def admin_pilot(user=Depends(current_user)):
     on, sv = mode_map.get("ondevice", 0), mode_map.get("server", 0)
     reports = db.query_all(
         "SELECT gr.idx, gr.word, gr.student_ans, gr.correct_ans, gr.model_correct, gr.graded_by, "
-        "gr.created_at, u.email FROM grade_reports gr LEFT JOIN users u ON u.id=gr.user_id "
+        "gr.comment, gr.created_at, u.email FROM grade_reports gr LEFT JOIN users u ON u.id=gr.user_id "
         "ORDER BY gr.created_at DESC LIMIT 300")
     return {
         "modes": mode_map,

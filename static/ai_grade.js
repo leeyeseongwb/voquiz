@@ -167,6 +167,28 @@ async function gradeWrittenOnDevice(payload){ // 그 파일 안에 갇힘. app.j
         console.error("[온디바이스] 채점 실패(→ 서버 폴백):", err); // 왜 실패했는지 콘솔에 표시
         return null;
     }
-    
+
 
 }
+
+// ===== 온디바이스 AI 튜터 (단어 학습 관련 질문만) =====
+const CHAT_SYSTEM = `You are a friendly English vocabulary tutor for Korean students.
+ONLY help with English vocabulary and language learning: word meanings, usage, example sentences, synonyms/antonyms, nuance, collocations, pronunciation, and grammar related to words.
+If the question is NOT about English words or language learning (e.g., personal chat, math, coding, news, politics, other unrelated topics), do NOT answer it. Politely refuse in Korean and steer back, exactly like: "저는 영어 단어 학습만 도와드릴 수 있어요 🙂 궁금한 단어나 표현을 물어봐 주세요!"
+Reply in Korean unless the student writes in another language. Keep answers clear and concise, and add a short example sentence when helpful.`;
+
+async function chatOnDevice(messages) {
+    const engine = await getEngine();          // 이미 로딩된 모델 재사용
+    if (!engine) return null;                  // 온디바이스 불가 → 채팅 비활성
+    try {
+        const reply = await engine.chat.completions.create({
+            messages: [{ role: "system", content: CHAT_SYSTEM }, ...messages],
+            temperature: 0.4,                  // 채점(0)보다 약간 부드럽게
+        });
+        return reply.choices[0].message.content;
+    } catch (err) {
+        console.error("[온디바이스] 채팅 실패:", err);
+        return null;
+    }
+}
+window.chatOnDevice = chatOnDevice;

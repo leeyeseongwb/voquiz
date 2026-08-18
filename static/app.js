@@ -35,7 +35,7 @@ async function api(path, { method = "GET", body = null, isForm = false } = {}) {
 // ============================================================
 function showView(id) {
     ["view-dashboard", "view-upload", "view-wordbook", "view-exam-create", "view-take", "view-report",
-     "view-flashcards", "view-game", "view-cover", "view-dictation", "view-speed"]
+     "view-flashcards", "view-game", "view-cover", "view-dictation", "view-speed", "view-chat", "view-admin"]
         .forEach(v => document.getElementById(v).classList.add("hidden"));
     document.getElementById(id).classList.remove("hidden");
     // 게임 화면을 벗어나면 타이머 정지
@@ -53,8 +53,8 @@ function goDashboard() {
 // 사이드바 내비게이션: dashboard(개요) | wordbooks | exams
 function navTo(section) {
     stopTimer();
-    document.querySelectorAll(".side-link[data-nav]").forEach(l =>
-        l.classList.toggle("active", l.dataset.nav === section));
+    document.querySelectorAll(".side-link").forEach(l => l.classList.remove("active"));
+    document.querySelector(`.side-link[data-nav="${section}"]`)?.classList.add("active");
     showView("view-dashboard");
     const isDash = section === "dashboard";
     document.querySelector(".dash-stats").classList.toggle("hidden", !isDash);
@@ -260,6 +260,7 @@ async function enterApp() {
     const me = await api("/api/me");
     CURRENT_USER = me;
     renderUserChip();
+    document.getElementById("nav-admin")?.classList.toggle("hidden", !me.is_admin); // 관리자 메뉴는 관리자만
     document.getElementById("view-auth").classList.add("hidden");
     document.getElementById("view-app").classList.remove("hidden");
     goDashboard();
@@ -1624,27 +1625,36 @@ async function renderReport(result, exam) {
 }
 
 // 파일럿: 우측 하단 플로팅 신고 버튼 → 문항 선택 → 신고
+let _reportSelIdx = null;
 function openReportPicker() {
     if (!reportState.attemptId) return toastErr("먼저 채점을 완료해주세요.");
+    _reportSelIdx = null;
     const rs = reportState.results || [];
     document.getElementById("report-picker-list").innerHTML = rs.map(r => `
-        <button class="rp-item ${r.correct ? "" : "wrong"}" onclick="pickReport(${r.idx}, this)">
+        <button class="rp-item ${r.correct ? "" : "wrong"}" onclick="selectReportItem(${r.idx}, this)">
             <span class="rp-q">Q${r.idx}. ${esc(r.question)}</span>
             <span class="rp-you">내 답: ${esc(r.user_ans)} ${r.correct ? "✅" : "❌"}</span>
         </button>`).join("");
+    document.getElementById("report-comment").value = "";
     document.getElementById("report-picker-modal").classList.remove("hidden");
+}
+function selectReportItem(idx, el) {
+    _reportSelIdx = idx;
+    document.querySelectorAll("#report-picker-list .rp-item").forEach(b => b.classList.remove("sel"));
+    el.classList.add("sel");
 }
 function closeReportPicker(e) {
     if (e && e.target !== e.currentTarget) return;
     document.getElementById("report-picker-modal").classList.add("hidden");
 }
-async function pickReport(idx, btn) {
-    btn.disabled = true;
+async function submitReport() {
+    if (_reportSelIdx == null) return toastErr("먼저 문항을 선택해주세요.");
+    const comment = document.getElementById("report-comment").value.trim();
     try {
-        await api(`/api/attempts/${reportState.attemptId}/report-grade`, { method: "POST", body: { idx } });
-        btn.classList.add("done");
-        const y = btn.querySelector(".rp-you"); if (y) y.textContent = "✅ 신고 접수 — 감사합니다!";
-    } catch (e) { btn.disabled = false; toastErr(e.message); }
+        await api(`/api/attempts/${reportState.attemptId}/report-grade`, { method: "POST", body: { idx: _reportSelIdx, comment } });
+        toast("신고 접수 — 감사합니다! 🙏", "success");
+        closeReportPicker();
+    } catch (e) { toastErr(e.message); }
 }
 
 async function loadHistory(examId) {
@@ -1912,17 +1922,22 @@ function openProfile() {
     if (pref) pref.value = u.explain_lang || "ko";
     renderExplainLangPicker(u.explain_lang || "ko");
     renderOnDeviceSettings(); // 온디바이스 AI 섹션: 상태에 따라 다운로드/삭제 버튼
-    loadAdminPanel();         // 관리자면 파일럿 데이터 콘솔 표시
     document.getElementById("profile-modal").classList.remove("hidden");
+}
+
+// 좌측 메뉴 '파일럿 데이터'(관리자) → 전용 뷰
+function openAdminView() {
+    document.querySelectorAll(".side-link").forEach(l => l.classList.remove("active"));
+    document.getElementById("nav-admin")?.classList.add("active");
+    showView("view-admin");
+    loadAdminPanel();
+    window.scrollTo(0, 0);
 }
 
 // 관리자 콘솔: 파일럿 데이터(모드 분포·온디바이스 성공률·오채점 신고) — 관리자에게만
 async function loadAdminPanel() {
-    const sec = document.getElementById("admin-section");
-    if (!sec) return;
-    if (!(CURRENT_USER && CURRENT_USER.is_admin)) { sec.classList.add("hidden"); return; }
-    sec.classList.remove("hidden");
     const body = document.getElementById("admin-body");
+    if (!body) return;
     body.innerHTML = `<p class="muted">불러오는 중…</p>`;
     try {
         const d = await api("/api/admin/pilot");
@@ -1933,6 +1948,7 @@ async function loadAdminPanel() {
                 <td>${esc(r.student_ans || "")}</td>
                 <td>${r.model_correct ? "정답처리" : "오답처리"}</td>
                 <td>${esc(r.graded_by || "")}</td>
+                <td>${esc(r.comment || "")}</td>
                 <td class="muted">${esc((r.email || "").split("@")[0])}</td>
                 <td class="muted">${esc((r.created_at || "").slice(5, 16))}</td>
             </tr>`).join("");
@@ -1945,12 +1961,61 @@ async function loadAdminPanel() {
             </div>
             <p class="muted" style="margin:10px 0 6px">채점 모드 분포: ${esc(modeStr)}</p>
             <div class="admin-table-wrap"><table class="admin-table">
-                <thead><tr><th>단어</th><th>학생 답</th><th>모델 판정</th><th>모드</th><th>학생</th><th>시각</th></tr></thead>
-                <tbody>${rows || `<tr><td colspan="6" class="muted">아직 신고 없음</td></tr>`}</tbody>
+                <thead><tr><th>단어</th><th>학생 답</th><th>모델 판정</th><th>모드</th><th>설명</th><th>학생</th><th>시각</th></tr></thead>
+                <tbody>${rows || `<tr><td colspan="7" class="muted">아직 신고 없음</td></tr>`}</tbody>
             </table></div>`;
     } catch (e) {
-        if (/403/.test(e.message)) { sec.classList.add("hidden"); return; }
         body.innerHTML = `<p class="muted">불러오기 실패: ${esc(e.message)}</p>`;
+    }
+}
+
+// ===== AI 튜터 (온디바이스 채팅) =====
+let chatHistory = [];  // [{role:'user'|'assistant', content}]
+function openChat() {
+    document.querySelectorAll(".side-link").forEach(l => l.classList.remove("active"));
+    document.getElementById("nav-chat")?.classList.add("active");
+    showView("view-chat");
+    if (!chatHistory.length) {
+        chatHistory = [];
+        renderChat();
+        addChatBubble("assistant", "안녕하세요! 영어 단어 학습을 도와드릴게요 🤖\n궁금한 단어의 뜻·용법·예문을 물어보세요. (답변은 이 기기 안에서 만들어져요)");
+    }
+    setTimeout(() => document.getElementById("chat-input")?.focus(), 100);
+    window.scrollTo(0, 0);
+}
+function renderChat() {
+    document.getElementById("chat-messages").innerHTML = "";
+}
+function addChatBubble(role, text) {
+    const box = document.getElementById("chat-messages");
+    const d = document.createElement("div");
+    d.className = "chat-bubble " + role;
+    d.textContent = text;
+    box.appendChild(d);
+    box.scrollTop = box.scrollHeight;
+    return d;
+}
+async function sendChat() {
+    const input = document.getElementById("chat-input");
+    const text = input.value.trim();
+    if (!text) return;
+    if (!window.isOnDeviceAIReady || !window.isOnDeviceAIReady()) {
+        return toastErr("AI 튜터는 온디바이스 AI가 필요해요. 대시보드에서 먼저 다운로드해주세요.");
+    }
+    input.value = "";
+    document.getElementById("chat-send").disabled = true;
+    addChatBubble("user", text);
+    chatHistory.push({ role: "user", content: text });
+    const thinking = addChatBubble("assistant", "생각 중…");
+    try {
+        const reply = await window.chatOnDevice(chatHistory.slice(-8)); // 최근 맥락만
+        thinking.textContent = reply || "죄송해요, 답변을 만들지 못했어요. 다시 물어봐 주세요.";
+        if (reply) chatHistory.push({ role: "assistant", content: reply });
+    } catch (e) {
+        thinking.textContent = "오류가 났어요. 다시 시도해주세요.";
+    } finally {
+        document.getElementById("chat-send").disabled = false;
+        document.getElementById("chat-messages").scrollTop = 1e9;
     }
 }
 
