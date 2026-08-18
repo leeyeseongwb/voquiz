@@ -62,21 +62,6 @@ function renderTrendChart(trend) {
         ${grid}<path d="${area}" fill="url(#tcArea)"/><path d="${line}" class="tc-line"/>${dots}</svg>`;
 }
 
-function renderMastery(dist) {
-    const total = dist.mastered + dist.learning + dist.weak;
-    if (total === 0) return `<div class="mastery-empty">아직 학습한 단어가 없어요.</div>`;
-    const pct = n => (n / total * 100).toFixed(1);
-    const seg = (n, cls) => n ? `<div class="mastery-seg ${cls}" style="width:${pct(n)}%">${n}</div>` : "";
-    return `<div class="mastery-bar">
-        ${seg(dist.mastered, "mseg-mastered")}${seg(dist.learning, "mseg-learning")}${seg(dist.weak, "mseg-weak")}
-    </div>
-    <div class="mastery-legend">
-        <span><i class="dot-m" style="background:var(--green)"></i> 정복 ${dist.mastered}</span>
-        <span><i class="dot-m" style="background:var(--primary)"></i> 학습중 ${dist.learning}</span>
-        <span><i class="dot-m" style="background:var(--red)"></i> 취약 ${dist.weak}</span>
-    </div>`;
-}
-
 function render(d) {
     const kpi = (num, label, accent) =>
         `<div class="kpi ${accent ? "accent" : ""}"><div class="kpi-num">${num}</div><div class="kpi-label">${label}</div></div>`;
@@ -88,13 +73,6 @@ function render(d) {
             <div class="ri-date">${fmtDate(r.created_at)} · ${r.correct}/${r.total}</div></div>
             <span class="ri-score ${cls}">${r.score}%</span></div>`;
     }).join("") : `<div class="recent-empty">최근 응시한 시험이 없어요.</div>`;
-
-    const weak = d.weak_words.length ? d.weak_words.slice(0, 12).map(w => {
-        const cls = w.accuracy < 50 ? "lo" : "mid";
-        return `<div class="weak-item"><div style="min-width:0">
-            <div class="weak-word">${esc(w.word)}</div><div class="weak-mean">${esc(w.meaning || "")}</div></div>
-            <span class="weak-acc ${cls}">${w.accuracy}% · ✗${w.wrong}</span></div>`;
-    }).join("") : `<div class="mastery-empty">취약 단어가 없어요 👍</div>`;
 
     document.getElementById("report-body").innerHTML = `
         <div class="report-title-card">
@@ -112,10 +90,6 @@ function render(d) {
         <div class="stats-lower">
             <div class="chart-card"><h3>📈 점수 추이</h3><div class="trend-chart">${renderTrendChart(d.trend)}</div></div>
             <div class="recent-card"><h3>🕑 최근 응시</h3><div class="recent-list">${recent}</div></div>
-        </div>
-        <div class="stats-lower" style="margin-top:16px">
-            <div class="chart-card"><h3>🧠 단어 숙련도</h3><div class="mastery-box">${renderMastery(d.mastery)}</div></div>
-            <div class="recent-card"><h3>⚠️ 취약 단어</h3><div class="weak-list">${weak}</div></div>
         </div>`;
 }
 

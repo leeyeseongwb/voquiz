@@ -1369,6 +1369,7 @@ function confirmRange() {
     const n = ecState.selectedWords.length;
     document.getElementById("ec-range-note").textContent =
         n === total ? "범위: 전체 단어" : `범위: ${n}개 선택됨`;
+    document.getElementById("ec-word-count").textContent = n; // 바깥 '선택된 단어' 수도 갱신
     document.getElementById("range-modal").classList.add("hidden");
     toast(`${n}개 단어로 범위를 설정했어요.`, "success");
 }
@@ -1376,7 +1377,9 @@ function confirmRange() {
 function updateEcCount() {
     const chosen = ecState.wordbooks.filter(w => ecState.selected.has(w.id));
     const total = chosen.reduce((s, w) => s + (w.word_count || 0), 0);
-    document.getElementById("ec-word-count").textContent = total;
+    // 범위가 설정돼 있으면 그 선택 개수를, 아니면 전체를 표시
+    const count = (ecState.selectedWords && ecState.selectedWords.length) ? ecState.selectedWords.length : total;
+    document.getElementById("ec-word-count").textContent = count;
     const langs = new Set(chosen.map(w => w.language));
     document.getElementById("ec-wb-note").textContent =
         chosen.length ? `· 단어장 ${chosen.length}개${langs.size > 1 ? " (언어 혼합)" : ""}` : "";
@@ -1917,10 +1920,6 @@ function closeEditProfile(e) {
 }
 
 function openProfile() {
-    const u = CURRENT_USER;
-    const pref = document.getElementById("pref-explain-lang");
-    if (pref) pref.value = u.explain_lang || "ko";
-    renderExplainLangPicker(u.explain_lang || "ko");
     renderOnDeviceSettings(); // 온디바이스 AI 섹션: 상태에 따라 다운로드/삭제 버튼
     document.getElementById("profile-modal").classList.remove("hidden");
 }

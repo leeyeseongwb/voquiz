@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VocaShot — AI 단어 학습</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Gowun+Dodum&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=35">
+    <link rel="stylesheet" href="style.css?v=36">
     <link rel="icon" href="Favicon.png?v=3">
 </head>
 <body>
@@ -330,18 +330,6 @@
                     <input type="number" id="q-count" value="10" min="1" max="100" style="width:80px">
                 </div>
 
-                <div class="config-block inline">
-                    <label class="block-label">5. 해설 언어</label>
-                    <select id="ec-explain-lang" class="settings-input" style="width:auto">
-                        <option value="">설정값 사용</option>
-                        <option value="ko">🇰🇷 한국어</option>
-                        <option value="en">🇺🇸 English</option>
-                        <option value="ja">🇯🇵 日本語</option>
-                        <option value="zh">🇨🇳 中文</option>
-                        <option value="es">🇪🇸 Español</option>
-                        <option value="fr">🇫🇷 Français</option>
-                    </select>
-                </div>
 
                 <button class="btn-accent" onclick="startGenerate()">🤖 AI로 시험지 생성</button>
 
@@ -597,25 +585,6 @@
             </div>
 
             <div class="settings-grid">
-                <section class="settings-block locked-block">
-                    <h3>🗣 화면 언어</h3>
-                    <p class="muted" style="margin:0 0 10px">앱 화면 전체의 표시 언어예요.</p>
-                    <select class="settings-input" disabled>
-                        <option>🇰🇷 한국어</option>
-                        <option>🇺🇸 English</option>
-                        <option>🇨🇳 中文</option>
-                        <option>🇯🇵 日本語</option>
-                    </select>
-                    <div class="lock-overlay"><span>🔒 추후 업데이트될 예정입니다</span></div>
-                </section>
-
-                <section class="settings-block">
-                    <h3>🌐 문제·해설 언어</h3>
-                    <p class="muted" style="margin:0 0 10px">시험·학습의 문제와 해설을 이 언어로 만들어요.</p>
-                    <div id="explain-lang-picker" class="lang-picker"></div>
-                    <input type="hidden" id="pref-explain-lang">
-                </section>
-
                 <section class="settings-block">
                     <h3>🔑 비밀번호 변경</h3>
                     <input type="password" class="settings-input" id="pw-current" placeholder="현재 비밀번호" autocomplete="current-password">
@@ -859,6 +828,6 @@
 <script type="module" src="ai_grade.js?v=9"></script> 
 <!-- ai.grade.js라는 자바스크립트 파일을 불러와 실행하라고 명령. ?v=1은 쿼리 문자열. 캐시본을 재사용해 수정이 반영되지 않는 것을 방지 -->
 <!-- module은 파일을 ES 모듈로 취급하라느 것. 그리하여 import/export 사용, scrict mode, 스코프 격리, HTML 다 읽은 뒤 실행 킴 -->
-<script src="app.js?v=42"></script>
+<script src="app.js?v=43"></script>
 </body>
 </html>

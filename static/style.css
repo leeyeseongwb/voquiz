@@ -1540,11 +1540,19 @@ input[type="radio"]:focus-visible { box-shadow: 0 0 0 3px rgba(41,121,255,.2); }
     padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px;
     background: var(--card-2); color: var(--text);
 }
+/* 범위 모달: 화면 높이에 맞춰 헤더/컨트롤/푸터는 고정, 단어 목록만 스크롤 */
+#range-modal .modal-card { display: flex; flex-direction: column; max-height: 86vh; }
+#range-modal .range-controls, #range-modal .range-exclude, #range-modal .range-foot { flex-shrink: 0; }
 .range-word-list {
-    max-height: 320px; overflow-y: auto;
+    flex: 1; min-height: 140px; overflow-y: auto; overscroll-behavior: contain;
     border: 1px solid var(--border); border-radius: 10px;
     padding: 4px; margin-bottom: 12px;
 }
+.range-word-list::-webkit-scrollbar { width: 10px; }
+.range-word-list::-webkit-scrollbar-track { background: transparent; }
+.range-word-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; border: 2px solid var(--card); }
+.range-word-list::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+.range-word-list { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 .range-word {
     display: flex; align-items: center; gap: 10px;
     padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 14px;
