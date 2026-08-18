@@ -116,8 +116,8 @@ def send_verification_email(email: str, code: str):
     실 서비스용 SMTP 를 붙이려면 .env 에 SMTP_HOST/PORT/USER/PASSWORD 설정.
     """
     host = os.getenv("SMTP_HOST")
-    subject = "[VocaShot] 이메일 인증 코드"
-    body = f"VocaShot 회원가입 인증 코드입니다.\n\n인증 코드: {code}\n\n{CODE_TTL_MIN}분 이내에 입력해주세요."
+    subject = "[VoQuiz] 이메일 인증 코드"
+    body = f"VoQuiz 회원가입 인증 코드입니다.\n\n인증 코드: {code}\n\n{CODE_TTL_MIN}분 이내에 입력해주세요."
 
     if not host:
         # 개발 모드: 콘솔에 출력

@@ -1,7 +1,7 @@
 """
 app.py
 ------
-VocaShot 백엔드 (FastAPI).
+VoQuiz 백엔드 (FastAPI).
 
 기능 흐름:
   회원가입/이메일 인증/로그인  →  단어장 PDF 업로드 & OCR 추출(진행바)
@@ -43,7 +43,13 @@ ADMIN_EMAILS = {e.strip().lower() for e in
 def _is_admin_email(email):
     return (email or "").lower() in ADMIN_EMAILS
 
-app = FastAPI(title="VocaShot")
+# HTTPS 배포 시 .env에 SESSION_SECURE=1 → 세션 쿠키를 HTTPS에서만 전송(보안)
+SESSION_SECURE = os.getenv("SESSION_SECURE", "0") == "1"
+
+# 베타 가입 키: 회원가입 시 이메일 인증에 더해 이 키가 필요. .env의 SIGNUP_KEY로 변경.
+SIGNUP_KEY = os.getenv("SIGNUP_KEY", "Voquiz-Beta-Wanbang")
+
+app = FastAPI(title="VoQuiz")
 
 
 @app.middleware("http")
@@ -61,7 +67,7 @@ async def _no_cache_static(request: Request, call_next):
 def _startup():
     db.init_db()
     auth.ensure_test_account()
-    print("✅ VocaShot 서버 준비 완료. http://127.0.0.1:8000")
+    print("✅ VoQuiz 서버 준비 완료. http://127.0.0.1:8000")
 
 
 def _now():
@@ -86,6 +92,7 @@ def current_user(request: Request):
 class SignupBody(BaseModel):
     email: str
     password: str
+    key: str = ""  # 베타 가입 키
 
 
 class VerifyBody(BaseModel):
@@ -100,6 +107,8 @@ class LoginBody(BaseModel):
 
 @app.post("/api/signup")
 def signup(body: SignupBody):
+    if (body.key or "").strip() != SIGNUP_KEY:
+        raise HTTPException(403, "가입 키가 올바르지 않아요. 베타 키를 확인해주세요.")
     email = body.email.strip().lower()
     if "@" not in email:
         raise HTTPException(400, "올바른 이메일 형식이 아닙니다.")
@@ -132,7 +141,7 @@ def verify(body: VerifyBody, response: Response):
     auth.mark_verified(email)
     user = auth.get_user_by_email(email)
     token = auth.create_session(user["id"])
-    response.set_cookie("session", token, httponly=True, samesite="lax", max_age=60 * 60 * 24 * 30)
+    response.set_cookie("session", token, httponly=True, samesite="lax", secure=SESSION_SECURE, max_age=60 * 60 * 24 * 30)
     return {"status": "success", "email": email}
 
 
@@ -158,7 +167,7 @@ def login(body: LoginBody, response: Response):
     if not user["is_verified"]:
         raise HTTPException(403, "이메일 인증이 필요합니다.")
     token = auth.create_session(user["id"])
-    response.set_cookie("session", token, httponly=True, samesite="lax", max_age=60 * 60 * 24 * 30)
+    response.set_cookie("session", token, httponly=True, samesite="lax", secure=SESSION_SECURE, max_age=60 * 60 * 24 * 30)
     return {"status": "success", "email": email}
 
 

@@ -3,7 +3,7 @@ ai_extract.py
 -------------
 PDF / 이미지에서 단어 데이터를 추출하는 모듈 (OCR + Gemini).
 
-기존 VocaShot 의 extractor_gemini.py + pdf_processor.py 로직을 재사용하되,
+기존 VoQuiz 의 extractor_gemini.py + pdf_processor.py 로직을 재사용하되,
 진행 상황(progress)을 콜백으로 보고하도록 개선했다.
 
 추출 필드: word / definition / meaning / example / page
