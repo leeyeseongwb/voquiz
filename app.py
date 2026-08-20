@@ -70,6 +70,7 @@ def _startup():
     db.init_db()
     if auth.DEV_MODE:          # 테스트 계정은 개발 모드(DEV_MODE=1)에서만 시드 (운영 서버엔 만들지 않음)
         auth.ensure_test_account()
+    auth.ensure_admin_account()  # 관리자 계정(.env의 ADMIN_SEED_EMAIL/PW) 보장 — 통계 열람 전용
     print("✅ VoQuiz 서버 준비 완료. http://127.0.0.1:8000")
 
 

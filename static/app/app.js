@@ -268,7 +268,10 @@ async function enterApp() {
     document.getElementById("nav-admin")?.classList.toggle("hidden", !me.is_admin); // 관리자 메뉴는 관리자만
     document.getElementById("view-auth").classList.add("hidden");
     document.getElementById("view-app").classList.remove("hidden");
-    goDashboard();
+    // 관리자 계정: 일반 기능 없이 '통계(파일럿 데이터)'만 보여준다
+    document.body.classList.toggle("admin-only", !!me.is_admin);
+    if (me.is_admin) openAdminView();
+    else goDashboard();
 }
 
 // 상단바 프로필 칩 렌더링 (닉네임 / 아바타)

@@ -241,3 +241,19 @@ def ensure_test_account():
         if existing.get("tier") != "premium" or not existing.get("nickname"):
             db.execute("UPDATE users SET tier='premium', nickname=COALESCE(NULLIF(nickname,''),'테스터') "
                        "WHERE email='test@vocashot.com'", commit=True)
+
+
+def ensure_admin_account():
+    """관리자(통계 열람 전용) 계정을 .env(ADMIN_SEED_EMAIL / ADMIN_SEED_PW)로 자동 보장.
+    값이 없으면 아무것도 하지 않는다. 비밀번호는 항상 .env 값과 일치시킨다."""
+    email = (os.getenv("ADMIN_SEED_EMAIL", "") or "").strip().lower()
+    pw = os.getenv("ADMIN_SEED_PW", "")
+    if not email or not pw:
+        return
+    existing = get_user_by_email(email)
+    if not existing:
+        create_user(email, pw, verified=True, nickname="관리자", tier="premium")
+        print(f"[SEED] 관리자 계정 생성됨 → {email}")
+    else:
+        update_password(existing["id"], pw)   # 분실/변경 대비: .env 값으로 재설정
+        db.execute("UPDATE users SET is_verified=1 WHERE email=?", (email,), commit=True)
