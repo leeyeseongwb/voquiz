@@ -31,6 +31,9 @@ document.querySelectorAll(".reveal, .lines").forEach(el => {
     io.observe(el);
 });
 
+// 모바일: '작동 방식' 3개 장면을 스크롤 시 하나씩 등장시킨다 (데스크톱은 핀 고정 방식 사용)
+if (isMobile()) document.querySelectorAll(".scene").forEach(el => io.observe(el));
+
 /* ---------- 숫자 카운트업 ---------- */
 const cio = new IntersectionObserver((entries) => {
     entries.forEach(e => {

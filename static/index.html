@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VoQuiz — 당신의 단어장이, 당신만의 시험지로</title>
-<meta name="description" content="사진 한 장이면 끝. AI가 단어를 읽어 나만을 위한 시험을 만들고, 기기 안에서 바로 채점합니다. 답안은 기기를 떠나지 않아요.">
+<title>VoQuiz</title>
+<meta name="description" content="사진 한 장이면 끝. AI가 단어를 읽어 나만을 위한 시험을 만들고, 채점은 기기 안에서 — 답안이 밖으로 나가지 않아요.">
 <link rel="icon" href="assets/favicon.png?v=2">
-<link rel="stylesheet" href="style.css?v=9">
+<link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
 
@@ -22,6 +22,7 @@
         <a href="#top" class="nav-logo"><img src="assets/logo.png?v=2" alt="VoQuiz"></a>
         <ul class="nav-links">
             <li><a href="#how">작동 방식</a></li>
+            <li><a href="#exam">시험</a></li>
             <li><a href="#learn">학습</a></li>
             <li><a href="#privacy">프라이버시</a></li>
         </ul>
@@ -85,13 +86,19 @@
     </div>
 </header>
 
-<!-- ============ 지표 ============ -->
-<section class="strip">
-    <div class="strip-inner">
-        <div class="stat reveal"><b data-count="162">0</b><span>사진 한 장에서 뽑은 단어</span></div>
-        <div class="stat reveal"><b data-count="5">0</b><span>골라 쓰는 시험 형식</span></div>
-        <div class="stat reveal"><b>0</b><span>서버로 나가는 답안</span></div>
-        <div class="stat reveal"><b>∞</b><span>언제든 다시 도전</span></div>
+<!-- ============ 특징 ============ -->
+<section id="features" class="sec">
+    <div class="sec-inner">
+        <p class="kicker reveal">특징</p>
+        <h2 class="sec-title lines"><span><i>필요한 건 다,</i></span><span><i>사진 한 장부터.</i></span></h2>
+        <div class="feat-list">
+            <div class="feat-item reveal"><span class="fi-ico">📸</span><div><h3>사진으로 단어 추출</h3><p>단어장을 찍거나 PDF로 올리면 AI가 단어·뜻·예문을 읽어냅니다.</p></div></div>
+            <div class="feat-item reveal"><span class="fi-ico">📝</span><div><h3>나만의 시험 자동 생성</h3><p>TOEFL·SAT·주관식 등 5가지 형식으로, 내 단어로 만든 진짜 시험.</p></div></div>
+            <div class="feat-item reveal"><span class="fi-ico">🧠</span><div><h3>기기 안에서 채점</h3><p>주관식 채점을 브라우저 안 AI가 직접 — 답안이 밖으로 나가지 않아요.</p></div></div>
+            <div class="feat-item reveal"><span class="fi-ico">🎴</span><div><h3>여러 학습 모드</h3><p>플래시카드·받아쓰기·스피드 퀴즈·게임으로 반복 학습.</p></div></div>
+            <div class="feat-item reveal"><span class="fi-ico">💬</span><div><h3>AI 단어 튜터</h3><p>용법·뉘앙스가 궁금하면 바로 질문. 어휘 밖 질문엔 답하지 않아요.</p></div></div>
+            <div class="feat-item reveal"><span class="fi-ico">📊</span><div><h3>진도 리포트</h3><p>점수 추이와 취약 단어를 한눈에. 링크로 공유도 돼요.</p></div></div>
+        </div>
     </div>
 </section>
 
@@ -257,6 +264,96 @@
         <div class="two-up">
             <div class="up reveal"><h3>🧠 기기 안에서 채점</h3><p>모델이 브라우저에서 실행돼요. 답안은 기기 밖으로 나가지 않습니다.</p></div>
             <div class="up reveal"><h3>🔒 데이터 최소 수집</h3><p>학습에 필요한 것만 저장하고, 답안 원문은 외부로 보내지 않아요.</p></div>
+        </div>
+    </div>
+</section>
+
+<!-- ============ 소식 ============ -->
+<section id="news" class="sec">
+    <div class="sec-inner wide">
+        <div class="news-head">
+            <div>
+                <p class="kicker reveal">소식</p>
+                <h2 class="sec-title left lines"><span><i>새로워진 것들.</i></span></h2>
+            </div>
+            <div class="news-nav reveal">
+                <button class="nb" id="news-prev" aria-label="이전">‹</button>
+                <button class="nb" id="news-next" aria-label="다음">›</button>
+            </div>
+        </div>
+
+        <div class="news-rail" id="news-rail">
+            <article class="news-card reveal">
+                <div class="nc-visual v6">
+                    <div class="nc-mini">🧭 <b>플래너</b><span>망각곡선 계획</span></div>
+                </div>
+                <div class="nc-body">
+                    <span class="nc-tag new">신규</span>
+                    <h3>AI 학습 플래너가 열렸습니다</h3>
+                    <p>목표와 날짜만 정하면 AI가 매일 외울 단어와 복습 시점을 캘린더로 짜 줍니다. 망각곡선에 맞춘 분산 학습이니까요.</p>
+                    <time>2026.07.28</time>
+                </div>
+            </article>
+
+            <article class="news-card reveal">
+                <div class="nc-visual v7">
+                    <div class="nc-mini">🎮 <b>학습</b><span>8가지 모드</span></div>
+                </div>
+                <div class="nc-body">
+                    <span class="nc-tag new">신규</span>
+                    <h3>학습 모드가 8가지로</h3>
+                    <p>가리고 외우기·받아쓰기·스피드 퀴즈·스펠링·예문 채우기까지. 단어를 여러 각도로 손에 익히세요.</p>
+                    <time>2026.07.22</time>
+                </div>
+            </article>
+
+            <article class="news-card reveal">
+                <div class="nc-visual v1">
+                    <div class="nc-mini">✍️ <b>예문</b><span>AI 첨삭</span></div>
+                </div>
+                <div class="nc-body">
+                    <span class="nc-tag">업데이트</span>
+                    <h3>AI 예문 첨삭이 도착했습니다</h3>
+                    <p>플래시카드를 뒤집고 예문을 쓰면, AI가 용법이 맞는지 짚어주고 자연스러운 문장으로 고쳐줍니다.</p>
+                    <time>2026.07.15</time>
+                </div>
+            </article>
+
+            <article class="news-card reveal">
+                <div class="nc-visual v3">
+                    <div class="nc-mini">🇨🇳 <b>中文</b><span>병음 지원</span></div>
+                </div>
+                <div class="nc-body">
+                    <span class="nc-tag">언어</span>
+                    <h3>중국어 단어장을 지원합니다</h3>
+                    <p>한자와 병음(pinyin)까지 추출해 단어 목록과 플래시카드에 함께 보여줍니다. 문제도 언어에 맞춰 출제됩니다.</p>
+                    <time>2026.07.08</time>
+                </div>
+            </article>
+
+            <article class="news-card reveal">
+                <div class="nc-visual v4">
+                    <div class="nc-mini">👪 <b>리포트</b><span>링크 공유</span></div>
+                </div>
+                <div class="nc-body">
+                    <span class="nc-tag">업데이트</span>
+                    <h3>학부모 리포트 공유 링크</h3>
+                    <p>읽기전용 링크 하나로 진도·점수 추이·취약 단어를 공유하세요. 로그인 없이 열립니다.</p>
+                    <time>2026.07.02</time>
+                </div>
+            </article>
+
+            <article class="news-card reveal">
+                <div class="nc-visual v5">
+                    <div class="nc-mini">🎴 <b>학습</b><span>카드 · 게임</span></div>
+                </div>
+                <div class="nc-body">
+                    <span class="nc-tag">신규</span>
+                    <h3>플래시카드와 단어 맞추기 게임</h3>
+                    <p>시험 말고도 외울 방법이 필요하니까요. 뒤집고, 짝 맞추고, 잊을 때쯤 다시 만납니다.</p>
+                    <time>2026.06.24</time>
+                </div>
+            </article>
         </div>
     </div>
 </section>
