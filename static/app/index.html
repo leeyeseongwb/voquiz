@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VoQuiz — AI 단어 학습</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Gowun+Dodum&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=37">
+    <link rel="stylesheet" href="style.css?v=38">
     <link rel="icon" href="Favicon.png?v=4">
 </head>
 <body>
@@ -86,7 +86,6 @@
             <button class="side-link active" data-nav="dashboard" onclick="navTo('dashboard')"><span class="side-ico" data-icon="home"></span> <span data-i18n="nav.dashboard">대시보드</span></button>
             <button class="side-link" data-nav="wordbooks" onclick="navTo('wordbooks')"><span class="side-ico" data-icon="book"></span> <span data-i18n="nav.wordbooks">내 단어장</span></button>
             <button class="side-link" data-nav="exams" onclick="navTo('exams')"><span class="side-ico" data-icon="doc"></span> <span data-i18n="nav.exams">내 시험지</span></button>
-            <button class="side-link" id="nav-chat" onclick="openChat()"><span class="side-ico">🤖</span> <span>AI 튜터</span></button>
             <button class="side-link hidden" id="nav-admin" onclick="openAdminView()"><span class="side-ico">🛠</span> <span>파일럿 데이터</span></button>
         </nav>
 
@@ -521,24 +520,25 @@
             </div>
         </section>
 
-        <!-- AI 튜터 (온디바이스 채팅) -->
-        <section id="view-chat" class="hidden">
-            <div class="card chat-card">
-                <div class="panel-head">
-                    <div>
-                        <h2>🤖 AI 튜터</h2>
-                        <p class="sub">단어 뜻·용법·예문을 자유롭게 물어보세요. (이 기기 안에서 답해요)</p>
-                    </div>
-                    <button class="btn-mini" onclick="clearChat()">🗑 대화 지우기</button>
-                </div>
-                <div id="chat-messages" class="chat-messages"></div>
-                <div class="chat-input-row">
-                    <input type="text" id="chat-input" placeholder="예: 'ephemeral' 를 예문과 함께 설명해줘"
-                           onkeydown="if(event.key==='Enter')sendChat()">
-                    <button class="btn-primary" style="width:auto" id="chat-send" onclick="sendChat()">보내기</button>
+        <!-- AI 튜터 · 우측 플로팅 팝업 채팅 (온디바이스) -->
+        <button id="chat-fab" onclick="toggleChat()" aria-label="AI 튜터 열기">
+            <span class="cf-ico">🤖</span><span class="cf-label">AI 튜터</span>
+        </button>
+        <div id="chat-pop" class="chat-pop hidden">
+            <div class="chat-pop-head">
+                <div class="cph-title"><b>🤖 AI 튜터</b><span>이 기기 안에서 답해요</span></div>
+                <div class="chat-pop-btns">
+                    <button class="cph-btn" onclick="clearChat()" title="대화 지우기">🗑</button>
+                    <button class="cph-btn" onclick="toggleChat()" title="닫기">✕</button>
                 </div>
             </div>
-        </section>
+            <div id="chat-messages" class="chat-messages"></div>
+            <div class="chat-input-row">
+                <input type="text" id="chat-input" placeholder="예: 'ephemeral' 예문과 함께 설명해줘"
+                       onkeydown="if(event.key==='Enter')sendChat()">
+                <button class="btn-primary" id="chat-send" onclick="sendChat()">↑</button>
+            </div>
+        </div>
 
         <!-- 관리자: 파일럿 데이터 -->
         <section id="view-admin" class="hidden">
@@ -829,6 +829,6 @@
 <script type="module" src="ai_grade.js?v=10"></script> 
 <!-- ai.grade.js라는 자바스크립트 파일을 불러와 실행하라고 명령. ?v=1은 쿼리 문자열. 캐시본을 재사용해 수정이 반영되지 않는 것을 방지 -->
 <!-- module은 파일을 ES 모듈로 취급하라느 것. 그리하여 import/export 사용, scrict mode, 스코프 격리, HTML 다 읽은 뒤 실행 킴 -->
-<script src="app.js?v=45"></script>
+<script src="app.js?v=46"></script>
 </body>
 </html>

@@ -35,7 +35,7 @@ async function api(path, { method = "GET", body = null, isForm = false } = {}) {
 // ============================================================
 function showView(id) {
     ["view-dashboard", "view-upload", "view-wordbook", "view-exam-create", "view-take", "view-report",
-     "view-flashcards", "view-game", "view-cover", "view-dictation", "view-speed", "view-chat", "view-admin"]
+     "view-flashcards", "view-game", "view-cover", "view-dictation", "view-speed", "view-admin"]
         .forEach(v => document.getElementById(v).classList.add("hidden"));
     document.getElementById(id).classList.remove("hidden");
     // 게임 화면을 벗어나면 타이머 정지
@@ -2005,18 +2005,23 @@ async function loadAdminPanel() {
 
 // ===== AI 튜터 (온디바이스 채팅) =====
 let chatHistory = [];  // [{role:'user'|'assistant', content}]
-function openChat() {
-    document.querySelectorAll(".side-link").forEach(l => l.classList.remove("active"));
-    document.getElementById("nav-chat")?.classList.add("active");
-    showView("view-chat");
-    if (!chatHistory.length) {
-        chatHistory = [];
-        renderChat();
-        addChatBubble("assistant", "안녕하세요! 영어 단어 학습을 도와드릴게요 🤖\n궁금한 단어의 뜻·용법·예문을 물어보세요. (답변은 이 기기 안에서 만들어져요)");
+function toggleChat() {
+    const pop = document.getElementById("chat-pop");
+    const fab = document.getElementById("chat-fab");
+    if (!pop) return;
+    const opening = pop.classList.contains("hidden");
+    pop.classList.toggle("hidden");
+    if (fab) fab.style.display = opening ? "none" : "";   // 열려 있으면 탭 숨김
+    if (opening) {
+        if (!chatHistory.length) {
+            chatHistory = [];
+            renderChat();
+            addChatBubble("assistant", "안녕하세요! 영어 단어 학습을 도와드릴게요 🤖\n궁금한 단어의 뜻·용법·예문을 물어보세요. (답변은 이 기기 안에서 만들어져요)");
+        }
+        setTimeout(() => document.getElementById("chat-input")?.focus(), 100);
     }
-    setTimeout(() => document.getElementById("chat-input")?.focus(), 100);
-    window.scrollTo(0, 0);
 }
+function openChat() { toggleChat(); }   // 하위 호환
 function renderChat() {
     document.getElementById("chat-messages").innerHTML = "";
 }
