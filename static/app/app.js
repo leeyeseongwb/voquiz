@@ -2022,6 +2022,7 @@ function toggleChat() {
     }
 }
 function openChat() { toggleChat(); }   // 하위 호환
+function toggleChatBig() { document.getElementById("chat-pop")?.classList.toggle("big"); }
 function renderChat() {
     document.getElementById("chat-messages").innerHTML = "";
 }

@@ -36,9 +36,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_DIR = os.getenv("UPLOAD_DIR") or os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# 관리자 이메일 (파일럿 콘솔 접근). 서버 .env의 ADMIN_EMAILS(콤마구분)로 설정.
+# 관리자 이메일 (파일럿 콘솔 접근). 서버 .env의 ADMIN_EMAILS(콤마구분)로만 설정 — 코드에 하드코딩하지 않음.
 ADMIN_EMAILS = {e.strip().lower() for e in
-                os.getenv("ADMIN_EMAILS", "leeyeseongwb@gmail.com,test@vocashot.com").split(",") if e.strip()}
+                os.getenv("ADMIN_EMAILS", "").split(",") if e.strip()}
 
 
 def _is_admin_email(email):
@@ -47,8 +47,9 @@ def _is_admin_email(email):
 # HTTPS 배포 시 .env에 SESSION_SECURE=1 → 세션 쿠키를 HTTPS에서만 전송(보안)
 SESSION_SECURE = os.getenv("SESSION_SECURE", "0") == "1"
 
-# 베타 가입 키: 회원가입 시 이메일 인증에 더해 이 키가 필요. .env의 SIGNUP_KEY로 변경.
-SIGNUP_KEY = os.getenv("SIGNUP_KEY", "Voquiz-Beta-Wanbang")
+# 베타 가입 키: 회원가입 시 이메일 인증에 더해 이 키가 필요. .env의 SIGNUP_KEY로만 설정.
+# (비어 있으면 가입 키 게이트 없음 — 로컬 개발용. 운영 서버는 반드시 .env에 설정)
+SIGNUP_KEY = os.getenv("SIGNUP_KEY", "")
 
 app = FastAPI(title="VoQuiz")
 
@@ -67,7 +68,8 @@ async def _no_cache_static(request: Request, call_next):
 @app.on_event("startup")
 def _startup():
     db.init_db()
-    auth.ensure_test_account()
+    if auth.DEV_MODE:          # 테스트 계정은 개발 모드(DEV_MODE=1)에서만 시드 (운영 서버엔 만들지 않음)
+        auth.ensure_test_account()
     print("✅ VoQuiz 서버 준비 완료. http://127.0.0.1:8000")
 
 
@@ -108,7 +110,7 @@ class LoginBody(BaseModel):
 
 @app.post("/api/signup")
 def signup(body: SignupBody):
-    if (body.key or "").strip() != SIGNUP_KEY:
+    if SIGNUP_KEY and (body.key or "").strip() != SIGNUP_KEY:
         raise HTTPException(403, "가입 키가 올바르지 않아요. 베타 키를 확인해주세요.")
     email = body.email.strip().lower()
     if "@" not in email:

@@ -38,13 +38,15 @@ fi
 [ "$OLD_NET" = "default" ] && OLD_NET=bridge
 if [ -z "$OLD_RESTART" ] || [ "$OLD_RESTART" = "no" ]; then OLD_RESTART=unless-stopped; fi
 
-echo "==> 2) 새 기능 필수 환경변수 보장(없을 때만 추가)"
+echo "==> 2) 비밀 아닌 기본값만 보장(없을 때만 추가)"
 ensure(){ grep -q "^$1=" "$ENVFILE" || echo "$1=$2" >> "$ENVFILE"; }
 ensure DEV_MODE 0
 ensure SESSION_SECURE 1
-ensure SIGNUP_KEY Voquiz-Beta-Wanbang
 ensure GEMINI_DAILY_LIMIT 500
-ensure ADMIN_EMAILS leeyeseongwb@gmail.com
+# ⚠️ SIGNUP_KEY, ADMIN_EMAILS, GOOGLE_API_KEY, SMTP_* 등 '비밀값'은 코드에 넣지 않는다.
+#    반드시 서버의 $ENVFILE (/root/voquiz.env) 에 직접 설정해 둘 것.
+if ! grep -q '^SIGNUP_KEY=' "$ENVFILE"; then echo "⚠️  주의: $ENVFILE 에 SIGNUP_KEY 가 없어요 → 가입 키 게이트가 꺼진 채로 배포됩니다."; fi
+if ! grep -q '^ADMIN_EMAILS=' "$ENVFILE"; then echo "⚠️  주의: $ENVFILE 에 ADMIN_EMAILS 가 없어요 → 관리자 콘솔에 아무도 접근 못 해요."; fi
 
 echo "==> 3) 이미지 빌드 (기존 컨테이너는 계속 실행 → 빌드 중 무중단)"
 docker build -t "$IMAGE" .

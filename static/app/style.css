@@ -1691,7 +1691,8 @@ input[type="radio"]:focus-visible { box-shadow: 0 0 0 3px rgba(41,121,255,.2); }
     box-shadow: -4px 4px 18px rgba(20, 50, 130, .3); transition: padding .18s ease;
 }
 #chat-fab:hover { padding-left: 18px; }
-#chat-fab .cf-ico { font-size: 1.35rem; line-height: 1; }
+#chat-fab .cf-ico { line-height: 1; }
+#chat-fab .cf-ico svg { width: 24px; height: 24px; display: block; }
 #chat-fab .cf-label { writing-mode: vertical-rl; font-size: .72rem; font-weight: 800; letter-spacing: .06em; }
 
 .chat-pop {
@@ -1708,8 +1709,11 @@ input[type="radio"]:focus-visible { box-shadow: 0 0 0 3px rgba(41,121,255,.2); }
 .cph-title b { font-size: .98rem; }
 .cph-title span { display: block; font-size: .7rem; color: var(--muted); margin-top: 1px; }
 .chat-pop-btns { display: flex; gap: 4px; }
-.cph-btn { border: none; background: transparent; cursor: pointer; font-size: .95rem; padding: 6px 8px; border-radius: 8px; color: var(--text); }
+.cph-btn { border: none; background: transparent; cursor: pointer; font-size: .95rem; padding: 6px 8px; border-radius: 8px; color: var(--text); display: flex; align-items: center; }
+.cph-btn svg { width: 16px; height: 16px; display: block; }
 .cph-btn:hover { background: rgba(127, 127, 127, .15); }
+/* 크게 보기 */
+.chat-pop.big { width: min(760px, calc(100vw - 40px)); height: min(84vh, 860px); }
 .chat-pop .chat-messages { flex: 1; min-height: 0; max-height: none; padding: 14px; }
 .chat-pop .chat-input-row { margin: 0; padding: 12px 14px; border-top: 1px solid var(--border); }
 .chat-pop .chat-input-row .btn-primary { width: auto; padding: 0 16px; font-size: 1.1rem; }
