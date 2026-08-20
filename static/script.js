@@ -81,18 +81,6 @@ function update() {
     nav.classList.toggle("dark", onDark);
 
     if (!isMobile() && !reduced) {
-        // ---- 히어로 스크럽 ----
-        // 0 → 1 : 기기가 26deg 기울기에서 정면으로 펴지고, 살짝 커진다
-        if (hero && win) {
-            const p = range(y, 0, vh * 1.15);
-            win.style.setProperty("--rx", lerp(26, 0, p).toFixed(2) + "deg");
-            win.style.setProperty("--sc", lerp(0.92, 1.04, p).toFixed(3));
-            // 카피는 먼저 멀어지며 사라진다
-            const q = range(y, 0, vh * 0.72);
-            heroCopy.style.transform = `translateY(${(-q * 90).toFixed(1)}px) scale(${lerp(1, .94, q).toFixed(3)})`;
-            heroCopy.style.opacity = (1 - range(y, vh * 0.22, vh * 0.62)).toFixed(3);
-        }
-
         // ---- PINNED: 스크롤 구간을 3등분해 장면 전환 ----
         if (pin) {
             const r = pin.getBoundingClientRect();

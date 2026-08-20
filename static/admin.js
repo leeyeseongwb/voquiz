@@ -163,6 +163,7 @@ function renderNews(live = true) {
 
 /* ---------- 문구 override 적용 ---------- */
 const EDIT_SELECTOR = [
+    ".beta-bar",
     ".eyebrow", ".hero-title", ".hero-sub",
     ".kicker", ".lines i", ".pin-title",
     ".steps h3", ".steps p",
