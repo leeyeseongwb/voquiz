@@ -32,7 +32,8 @@ import ai_quiz
 import pdf_export
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+# 배포(도커) 시 UPLOAD_DIR 환경변수(/data/uploads 볼륨)를 우선 사용, 로컬은 프로젝트 uploads 폴더.
+UPLOAD_DIR = os.getenv("UPLOAD_DIR") or os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # 관리자 이메일 (파일럿 콘솔 접근). 서버 .env의 ADMIN_EMAILS(콤마구분)로 설정.

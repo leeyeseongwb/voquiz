@@ -36,7 +36,8 @@ GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-fla
 # ── Gemini 하루 채점 한도 (유료 API 비용 제한) ───────────────────────────
 # 하루에 Gemini로 채점할 수 있는 최대 주관식 '문제 수'. 환경변수 GEMINI_DAILY_LIMIT로 조절.
 GEMINI_DAILY_LIMIT = int(os.getenv("GEMINI_DAILY_LIMIT", "100"))
-_USAGE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "gemini_usage.json")
+_DATA_DIR = os.getenv("DATA_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+_USAGE_PATH = os.path.join(_DATA_DIR, "gemini_usage.json")
 
 
 def _gemini_usage_today():

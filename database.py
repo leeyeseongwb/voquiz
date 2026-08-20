@@ -17,9 +17,11 @@ import sqlite3
 import threading
 from contextlib import contextmanager
 
-# DB 파일 경로 (프로젝트 루트의 data 폴더 안)
+# DB 파일 경로. 배포(도커) 시 DATA_DIR 환경변수(/data 볼륨)를 우선 사용하고,
+# 로컬 개발에선 프로젝트 루트의 data 폴더를 쓴다. → 서버 재배포해도 회원 데이터 보존.
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "data", "vocashot.db")
+DATA_DIR = os.getenv("DATA_DIR") or os.path.join(BASE_DIR, "data")
+DB_PATH = os.path.join(DATA_DIR, "vocashot.db")
 
 # sqlite는 기본적으로 스레드 간 커넥션 공유가 안전하지 않으므로
 # 요청마다 커넥션을 새로 열고 닫는 방식을 사용한다.
