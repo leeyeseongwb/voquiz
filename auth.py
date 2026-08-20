@@ -120,8 +120,9 @@ def _verification_email_html(code: str) -> str:
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6fb;padding:32px 12px;">
     <tr><td align="center">
       <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(30,50,120,.08);">
-        <tr><td style="background-color:#2979ff;background-image:linear-gradient(135deg,#4f5bd5,#2979ff);padding:24px 32px;">
-          <span style="color:#ffffff;font-size:22px;font-weight:800;letter-spacing:-.5px;">VoQuiz</span>
+        <tr><td style="height:5px;background-color:#2979ff;background-image:linear-gradient(90deg,#4f5bd5,#2979ff);font-size:0;line-height:0;">&nbsp;</td></tr>
+        <tr><td style="padding:26px 32px 6px;">
+          <img src="https://voquiz.com/assets/logo.png" alt="VoQuiz" height="30" style="height:30px;width:auto;display:block;border:0;outline:none;text-decoration:none;">
         </td></tr>
         <tr><td style="padding:34px 32px 8px;">
           <h1 style="margin:0 0 8px;font-size:20px;color:#1a1a2e;font-weight:700;">이메일 인증 코드</h1>
