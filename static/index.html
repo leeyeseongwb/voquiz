@@ -3,26 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VoQuiz — 찍으면, 시험이 됩니다.</title>
-<meta name="description" content="사진 한 장이면 끝. AI가 단어를 읽어 시험을 만들고, 채점하고, 잊을 때쯤 복습까지 챙깁니다. 학생도 선생님도 VoQuiz 하나로.">
-<link rel="icon" href="assets/favicon.png">
-<link rel="stylesheet" href="style.css?v=7">
+<title>VoQuiz — 당신의 단어장이, 당신만의 시험지로</title>
+<meta name="description" content="사진 한 장이면 끝. AI가 단어를 읽어 나만을 위한 시험을 만들고, 기기 안에서 바로 채점합니다. 답안은 기기를 떠나지 않아요.">
+<link rel="icon" href="assets/favicon.png?v=2">
+<link rel="stylesheet" href="style.css?v=8">
 </head>
 <body>
 
 <div id="progress"></div>
 <div class="grain"></div>
 
+<!-- ============ BETA BAR ============ -->
+<div class="beta-bar">🧪 현재 <b>비공개 베타 테스트</b> 중 · 회원가입은 <b>초대받은 분</b>만 가능해요</div>
+
 <!-- ============ NAV ============ -->
 <nav id="nav">
     <div class="nav-inner">
-        <a href="#top" class="nav-logo"><img src="assets/logo.png" alt="VoQuiz"></a>
+        <a href="#top" class="nav-logo"><img src="assets/logo.png?v=2" alt="VoQuiz"></a>
         <ul class="nav-links">
             <li><a href="#how">작동 방식</a></li>
             <li><a href="#learn">학습</a></li>
-            <li><a href="#planner">플래너</a></li>
-            <li><a href="#news">소식</a></li>
-            <li><a href="#pricing">요금제</a></li>
+            <li><a href="#privacy">프라이버시</a></li>
         </ul>
         <a href="/app/" class="nav-cta">시작하기</a>
     </div>
@@ -33,11 +34,11 @@
     <div class="hero-aurora"></div>
     <div class="hero-sticky">
         <div class="hero-copy" id="hero-copy">
-            <p class="eyebrow">VoQuiz</p>
-            <h1 class="hero-title">찍으면,<br>시험이 됩니다.</h1>
-            <p class="hero-sub">사진 한 장이면 충분해요. AI가 단어를 읽어<br>시험을 만들고, 채점하고, 복습까지 끝냅니다.</p>
+            <p class="eyebrow">VoQuiz · Beta</p>
+            <h1 class="hero-title">당신의 단어장이,<br>당신만의 시험지로.</h1>
+            <p class="hero-sub">사진 한 장이면 끝. AI가 단어를 읽어 나만을 위한 시험을 만들고,<br>기기 안에서 바로 채점합니다.</p>
             <div class="hero-cta">
-                <a href="/app/" class="btn-primary">무료로 시작하기</a>
+                <a href="/app/" class="btn-primary">시작하기</a>
                 <a href="#how" class="btn-link">어떻게 작동하나요 ›</a>
             </div>
         </div>
@@ -48,7 +49,7 @@
                 <div class="window-body">
                     <div class="mock-top">
                         <div class="mock-greet">안녕하세요, <b>테스터</b>님 👋</div>
-                        <div class="mock-chip">선생님</div>
+                        <div class="mock-chip">🧠 온디바이스</div>
                     </div>
                     <div class="mock-kpis">
                         <div class="mock-kpi"><b>162</b><span>총 단어</span></div>
@@ -69,9 +70,7 @@
                             </svg>
                         </div>
                         <div class="mock-card">
-                            <div class="mock-card-t">단어 숙련도</div>
-                            <div class="mock-bar"><i style="width:62%;background:#22c55e"></i><i style="width:26%;background:#2979ff"></i><i style="width:12%;background:#ef4444"></i></div>
-                            <div class="mock-legend"><span>정복 101</span><span>학습중 42</span><span>취약 19</span></div>
+                            <div class="mock-card-t">최근 응시</div>
                             <div class="mock-words">
                                 <div><b>permeate</b><em>스며들다</em></div>
                                 <div><b>vindicate</b><em>정당성을 입증하다</em></div>
@@ -90,12 +89,12 @@
     <div class="strip-inner">
         <div class="stat reveal"><b data-count="162">0</b><span>사진 한 장에서 뽑은 단어</span></div>
         <div class="stat reveal"><b data-count="5">0</b><span>골라 쓰는 시험 형식</span></div>
-        <div class="stat reveal"><b data-count="2">0</b><span>지원 언어</span></div>
+        <div class="stat reveal"><b>0</b><span>서버로 나가는 답안</span></div>
         <div class="stat reveal"><b>∞</b><span>언제든 다시 도전</span></div>
     </div>
 </section>
 
-<!-- ============ PINNED — 작동 방식 (스크롤에 따라 장면 전환) ============ -->
+<!-- ============ PINNED — 작동 방식 ============ -->
 <section id="how" class="pin">
     <div class="pin-sticky">
         <div class="pin-grid">
@@ -105,17 +104,17 @@
                 <ol class="steps" id="steps">
                     <li class="step active" data-step="0">
                         <span class="s-num">01</span>
-                        <div><h3>찍는다</h3><p>단어장을 사진이나 PDF로 올리기만 하세요. AI가 단어·뜻·예문·페이지까지 정확히 읽어냅니다.</p></div>
+                        <div><h3>찍는다</h3><p>단어장을 사진이나 PDF로 올리면, AI가 단어·뜻·예문을 정확히 읽어냅니다.</p></div>
                         <div class="s-rail"><i></i></div>
                     </li>
                     <li class="step" data-step="1">
                         <span class="s-num">02</span>
-                        <div><h3>만든다</h3><p>범위와 형식만 고르면, 그 단어들로 진짜 같은 시험지가 완성됩니다.</p></div>
+                        <div><h3>만든다</h3><p>범위와 형식만 고르면, 그 단어들로 나만을 위한 시험지가 완성됩니다.</p></div>
                         <div class="s-rail"><i></i></div>
                     </li>
                     <li class="step" data-step="2">
                         <span class="s-num">03</span>
-                        <div><h3>푼다</h3><p>제출하는 순간 AI가 채점하고, 해설과 약한 단어까지 콕 짚어 줍니다.</p></div>
+                        <div><h3>푼다</h3><p>제출하는 순간 <b>기기 안의 AI</b>가 채점하고 해설을 남깁니다. 답안은 밖으로 나가지 않아요.</p></div>
                         <div class="s-rail"><i></i></div>
                     </li>
                 </ol>
@@ -148,7 +147,7 @@
                             <div class="gen-list">
                                 <div class="gen-row"><b>TOEFL Style</b><em>문맥 추론</em></div>
                                 <div class="gen-row"><b>단어 → 뜻</b><em>4지선다</em></div>
-                                <div class="gen-row"><b>주관식</b><em>AI 채점</em></div>
+                                <div class="gen-row"><b>주관식</b><em>기기 내 채점</em></div>
                             </div>
                             <div class="gen-out">
                                 <p>The rare snow leopard managed to <u>____</u> researchers for years.</p>
@@ -170,9 +169,9 @@
                             <div class="res-rows">
                                 <div class="res-row ok"><span>elude</span><em>✓ 정답</em></div>
                                 <div class="res-row ok"><span>buttress</span><em>✓ 정답</em></div>
-                                <div class="res-row no"><span>desecrate</span><em>✗ 복습 큐로</em></div>
+                                <div class="res-row no"><span>desecrate</span><em>✗ 오답</em></div>
                             </div>
-                            <p class="res-note">💡 AI가 해설을 남기고, 틀린 단어는 잊을 때쯤 다시 물어봅니다.</p>
+                            <p class="res-note">🧠 채점은 브라우저 안 AI가 직접 — 답안이 서버로 전송되지 않아요.</p>
                         </div>
                     </div>
                 </div>
@@ -193,7 +192,7 @@
             <div class="fmt reveal"><b>SAT Style</b><span>고난도 유의어·정의</span></div>
             <div class="fmt reveal"><b>단어 → 뜻</b><span>4지선다</span></div>
             <div class="fmt reveal"><b>뜻 → 단어</b><span>4지선다</span></div>
-            <div class="fmt reveal"><b>주관식</b><span>뜻 쓰기 · AI 채점</span></div>
+            <div class="fmt reveal"><b>주관식</b><span>뜻 쓰기 · 기기 내 AI 채점</span></div>
         </div>
 
         <div class="qcard reveal">
@@ -214,8 +213,8 @@
 <section id="learn" class="sec sec-dark">
     <div class="sec-inner">
         <p class="kicker reveal">학습</p>
-        <h2 class="sec-title lines"><span><i>외울 때까지,</i></span><span><i>잊을 때쯤 다시.</i></span></h2>
-        <p class="sec-sub reveal">플래시카드부터 받아쓰기·스피드 퀴즈까지 8가지 방법으로 외우고,<br>망각곡선이 잊을 때쯤 딱 맞춰 다시 물어봅니다.</p>
+        <h2 class="sec-title lines"><span><i>시험 말고도,</i></span><span><i>외우는 방법은 많으니까.</i></span></h2>
+        <p class="sec-sub reveal">플래시카드부터 받아쓰기·스피드 퀴즈까지 여러 방법으로 외우고,<br>모르는 건 AI 단어 튜터에게 바로 물어보세요.</p>
 
         <div class="learn-grid">
             <div class="lcard reveal">
@@ -230,307 +229,33 @@
                 <div class="modes">
                     <span>🙈 가리고 외우기</span><span>⌨️ 받아쓰기</span>
                     <span>🔗 짝 맞추기</span><span>⚡ 스피드 퀴즈</span>
-                    <span>🔤 스펠링</span><span>📝 예문 채우기</span>
+                    <span>🔤 스펠링</span><span>🎮 단어 게임</span>
                 </div>
-                <h3>8가지 학습 모드</h3>
-                <p>타이핑·게임·빈칸 채우기까지. 단어를 여러 각도로 손에 익힙니다.</p>
+                <h3>여러 학습 모드</h3>
+                <p>타이핑·게임까지, 단어를 여러 각도로 손에 익힙니다.</p>
             </div>
             <div class="lcard reveal">
-                <div class="srs">
-                    <div class="srs-row"><span>1일</span><i style="width:16%"></i></div>
-                    <div class="srs-row"><span>4일</span><i style="width:36%"></i></div>
-                    <div class="srs-row"><span>16일</span><i style="width:66%"></i></div>
-                    <div class="srs-row"><span>35일</span><i style="width:92%"></i></div>
+                <div class="modes">
+                    <span>🤖 이 단어 어떻게 써?</span><span>💬 예문 하나만</span>
+                    <span>🔍 비슷한 단어는?</span>
                 </div>
-                <h3>간격 반복(SRS)</h3>
-                <p>맞힐수록 간격이 늘고, 틀리면 즉시 다시 나옵니다.</p>
-            </div>
-        </div>
-
-        <div class="ai-check reveal">
-            <div class="ai-check-in">
-                <div class="ai-label">✍️ 이 단어로 예문을 써보세요</div>
-                <div class="ai-input">A strong smell of coffee began to permeate the whole office.</div>
-                <div class="ai-fb">
-                    <b>✅ 잘 썼어요!</b>
-                    <p>커피 향이 사무실 전체에 퍼지는 모습을 ‘permeate’로 아주 자연스럽고 생생하게 표현했어요.</p>
-                </div>
-            </div>
-            <div class="ai-side">
-                <h3>AI 예문 첨삭</h3>
-                <p>맞게 썼는지, 어색하면 어떻게 고칠지 — 선생님이 옆에 있는 것처럼 짚어 줍니다.</p>
-                <span class="tag">프리미엄 · 선생님</span>
+                <h3>AI 단어 튜터</h3>
+                <p>단어의 용법·뉘앙스가 궁금하면 바로 물어보세요. 어휘 밖 질문엔 답하지 않아 공부에 집중돼요.</p>
             </div>
         </div>
     </div>
 </section>
 
-<!-- ============ PLANNER ============ -->
-<section id="planner" class="sec">
-    <div class="sec-inner">
-        <p class="kicker reveal">AI 학습 플래너</p>
-        <h2 class="sec-title lines"><span><i>언제 무엇을 외울지,</i></span><span><i>AI가 짜 드립니다.</i></span></h2>
-        <p class="sec-sub reveal">목표와 시험 날짜만 정하세요. 에빙하우스 망각곡선에 맞춰<br>AI가 ‘오늘 무엇을 외울지’를 매일 캘린더에 채워 줍니다.</p>
-
-        <div class="plan-wrap">
-            <div class="plan-card reveal">
-                <div class="plan-goal">
-                    <span class="pg-ico">🧭</span>
-                    <div><b>여름방학 어휘 마스터</b><span>D-30 · 162단어 · 하루 8단어</span></div>
-                </div>
-                <div class="plan-cal">
-                    <div class="cal-cell"><em>1</em><i class="d-new"></i></div>
-                    <div class="cal-cell"><em>2</em><i class="d-new"></i><i class="d-rev"></i></div>
-                    <div class="cal-cell"><em>3</em><i class="d-new"></i><i class="d-rev"></i></div>
-                    <div class="cal-cell off"><em>4</em></div>
-                    <div class="cal-cell"><em>5</em><i class="d-new"></i><i class="d-rev"></i></div>
-                    <div class="cal-cell today"><em>6</em><i class="d-new"></i><i class="d-rev"></i></div>
-                    <div class="cal-cell"><em>7</em><i class="d-rev"></i></div>
-                    <div class="cal-cell"><em>8</em><i class="d-new"></i><i class="d-rev"></i></div>
-                    <div class="cal-cell"><em>9</em><i class="d-new"></i><i class="d-rev"></i></div>
-                    <div class="cal-cell"><em>10</em><i class="d-rev"></i></div>
-                    <div class="cal-cell"><em>11</em><i class="d-new"></i><i class="d-rev"></i></div>
-                    <div class="cal-cell off"><em>12</em></div>
-                    <div class="cal-cell"><em>13</em><i class="d-rev"></i></div>
-                    <div class="cal-cell"><em>14</em><i class="d-new"></i><i class="d-rev"></i></div>
-                </div>
-                <div class="plan-legend"><span><i class="d-new"></i> 새 단어</span><span><i class="d-rev"></i> 복습</span><span class="off-note">쉬는 날은 자동으로 건너뜁니다</span></div>
-            </div>
-
-            <div class="plan-card reveal">
-                <div class="pc-t">📉 예상 망각곡선 &amp; 복습 시점</div>
-                <svg viewBox="0 0 300 120" class="curve" preserveAspectRatio="none">
-                    <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#6c5ce7" stop-opacity=".28"/>
-                        <stop offset="100%" stop-color="#6c5ce7" stop-opacity="0"/>
-                    </linearGradient></defs>
-                    <path d="M0 22 L38 66 L44 24 L96 72 L102 24 L152 70 L158 24 L214 68 L220 24 L288 62 L288 120 L0 120 Z" fill="url(#cg)"/>
-                    <path d="M0 22 L38 66 L44 24 L96 72 L102 24 L152 70 L158 24 L214 68 L220 24 L288 62" fill="none" stroke="#6c5ce7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-                    <g class="cdots"><circle cx="44" cy="24" r="3.4"/><circle cx="102" cy="24" r="3.4"/><circle cx="158" cy="24" r="3.4"/><circle cx="220" cy="24" r="3.4"/></g>
-                </svg>
-                <div class="plan-iv"><span>1일</span><span>3일</span><span>7일</span><span>17일</span><span>39일</span></div>
-                <p class="plan-note">간격을 점점 늘리는 분산 학습이 벼락치기보다 오래 남습니다. — 에빙하우스 · 간격 효과</p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- ============ ACADEMY ============ -->
-<section id="academy" class="sec">
-    <div class="sec-inner">
-        <p class="kicker reveal">학원 · 교사</p>
-        <h2 class="sec-title lines"><span><i>가르치는 사람을</i></span><span><i>위해 설계했습니다.</i></span></h2>
-        <p class="sec-sub reveal">반을 만들고 코드만 알려주면 끝. 시험지를 배정하면<br>채점은 AI가 대신하고, 성적표는 저절로 쌓입니다.</p>
-
-        <div class="class-demo reveal">
-            <div class="cd-head">
-                <div><b>중2 영어 A반</b><span class="code">EDX0EY</span></div>
-                <div class="cd-meta">학생 24명 · 과제 3개</div>
-            </div>
-            <table class="cd-table">
-                <thead><tr><th>학생</th><th>Day 1–5</th><th>Day 6–10</th><th>모의고사</th></tr></thead>
-                <tbody>
-                    <tr><td>김민준</td><td><b class="hi">100%</b></td><td><b class="hi">92%</b></td><td><b class="mid">78%</b></td></tr>
-                    <tr><td>이서연</td><td><b class="hi">96%</b></td><td><b class="mid">74%</b></td><td><b class="hi">88%</b></td></tr>
-                    <tr><td>박지호</td><td><b class="mid">68%</b></td><td><b class="lo">42%</b></td><td><span class="none">미응시</span></td></tr>
-                    <tr><td>최수아</td><td><b class="hi">100%</b></td><td><b class="hi">100%</b></td><td><b class="hi">94%</b></td></tr>
-                </tbody>
-            </table>
-        </div>
+<!-- ============ PRIVACY (온디바이스) ============ -->
+<section id="privacy" class="sec">
+    <div class="sec-inner narrow">
+        <p class="kicker reveal">프라이버시</p>
+        <h2 class="sec-title lines"><span><i>당신의 답안은,</i></span><span><i>기기를 떠나지 않습니다.</i></span></h2>
+        <p class="sec-sub reveal">주관식 채점을 서버가 아니라 <b>당신의 브라우저 안 AI</b>가 직접 합니다.<br>학생이 쓴 답이 회사 서버로도, 외부 AI로도 전송되지 않아요.</p>
 
         <div class="two-up">
-            <div class="up reveal"><h3>참여 코드 하나로</h3><p>학생은 코드만 입력하면 반에 들어옵니다. 초대도, 계정 관리도 필요 없습니다.</p></div>
-            <div class="up reveal"><h3>손으로 만들던 단어시험, 이제 그만</h3><p>단어장 한 번 올리면 주간 시험이 자동으로 나옵니다. 채점 시간은 0분.</p></div>
-        </div>
-    </div>
-</section>
-
-<!-- ============ REPORT ============ -->
-<section class="sec sec-dark">
-    <div class="sec-inner narrow">
-        <p class="kicker reveal">학부모 리포트</p>
-        <h2 class="sec-title lines"><span><i>성장은</i></span><span><i>보여야 합니다.</i></span></h2>
-        <p class="sec-sub reveal">링크 하나면 됩니다. 로그인도 앱도 없이,<br>학부모가 아이의 진도와 약한 단어를 한눈에 확인해요.</p>
-        <div class="report-mock reveal">
-            <div class="rm-head">📊 <b>테스터</b>님의 학습 리포트</div>
-            <div class="rm-kpis"><div><b>162</b><span>총 단어</span></div><div><b>94%</b><span>평균</span></div><div><b>100%</b><span>최고</span></div></div>
-            <div class="rm-bar"><i style="width:62%;background:#22c55e"></i><i style="width:26%;background:#2979ff"></i><i style="width:12%;background:#ef4444"></i></div>
-            <div class="rm-weak"><span>discord</span><span>buttress</span><span>desecrate</span></div>
-        </div>
-    </div>
-</section>
-
-<!-- ============ 소식 ============ -->
-<section id="news" class="sec">
-    <div class="sec-inner wide">
-        <div class="news-head">
-            <div>
-                <p class="kicker reveal">소식</p>
-                <h2 class="sec-title left lines"><span><i>새로워진 것들.</i></span></h2>
-            </div>
-            <div class="news-nav reveal">
-                <button class="nb" id="news-prev" aria-label="이전">‹</button>
-                <button class="nb" id="news-next" aria-label="다음">›</button>
-            </div>
-        </div>
-
-        <div class="news-rail" id="news-rail">
-            <article class="news-card reveal">
-                <div class="nc-visual v6">
-                    <div class="nc-mini">🧭 <b>플래너</b><span>망각곡선 계획</span></div>
-                </div>
-                <div class="nc-body">
-                    <span class="nc-tag new">신규</span>
-                    <h3>AI 학습 플래너가 열렸습니다</h3>
-                    <p>목표와 날짜만 정하면 AI가 매일 외울 단어와 복습 시점을 캘린더로 짜 줍니다. 망각곡선에 맞춘 분산 학습이니까요.</p>
-                    <time>2026.07.28</time>
-                </div>
-            </article>
-
-            <article class="news-card reveal">
-                <div class="nc-visual v7">
-                    <div class="nc-mini">🎮 <b>학습</b><span>8가지 모드</span></div>
-                </div>
-                <div class="nc-body">
-                    <span class="nc-tag new">신규</span>
-                    <h3>학습 모드가 8가지로</h3>
-                    <p>가리고 외우기·받아쓰기·스피드 퀴즈·스펠링·예문 채우기까지. 단어를 여러 각도로 손에 익히세요.</p>
-                    <time>2026.07.22</time>
-                </div>
-            </article>
-
-            <article class="news-card reveal">
-                <div class="nc-visual v1">
-                    <div class="nc-mini">✍️ <b>예문</b><span>AI 첨삭</span></div>
-                </div>
-                <div class="nc-body">
-                    <span class="nc-tag">업데이트</span>
-                    <h3>AI 예문 첨삭이 도착했습니다</h3>
-                    <p>플래시카드를 뒤집고 예문을 쓰면, AI가 용법이 맞는지 짚어주고 자연스러운 문장으로 고쳐줍니다.</p>
-                    <time>2026.07.15</time>
-                </div>
-            </article>
-
-            <article class="news-card reveal">
-                <div class="nc-visual v2">
-                    <div class="nc-mini">🏫 <b>학원</b><span>반 개설</span></div>
-                </div>
-                <div class="nc-body">
-                    <span class="nc-tag">업데이트</span>
-                    <h3>학원·교사 모드 오픈</h3>
-                    <p>반을 만들고 참여 코드를 공유하세요. 시험지를 배정하면 학생별 성적이 대시보드에 자동으로 쌓입니다.</p>
-                    <time>2026.07.12</time>
-                </div>
-            </article>
-
-            <article class="news-card reveal">
-                <div class="nc-visual v3">
-                    <div class="nc-mini">🇨🇳 <b>中文</b><span>병음 지원</span></div>
-                </div>
-                <div class="nc-body">
-                    <span class="nc-tag">언어</span>
-                    <h3>중국어 단어장을 지원합니다</h3>
-                    <p>한자와 병음(pinyin)까지 추출해 단어 목록과 플래시카드에 함께 보여줍니다. 문제도 언어에 맞춰 출제됩니다.</p>
-                    <time>2026.07.08</time>
-                </div>
-            </article>
-
-            <article class="news-card reveal">
-                <div class="nc-visual v4">
-                    <div class="nc-mini">👪 <b>리포트</b><span>링크 공유</span></div>
-                </div>
-                <div class="nc-body">
-                    <span class="nc-tag">업데이트</span>
-                    <h3>학부모 리포트 공유 링크</h3>
-                    <p>읽기전용 링크 하나로 진도·점수 추이·취약 단어를 공유하세요. 로그인 없이 열립니다.</p>
-                    <time>2026.07.02</time>
-                </div>
-            </article>
-
-            <article class="news-card reveal">
-                <div class="nc-visual v5">
-                    <div class="nc-mini">🎴 <b>학습</b><span>카드 · 게임</span></div>
-                </div>
-                <div class="nc-body">
-                    <span class="nc-tag">신규</span>
-                    <h3>플래시카드와 단어 맞추기 게임</h3>
-                    <p>시험 말고도 외울 방법이 필요하니까요. 뒤집고, 짝 맞추고, 잊을 때쯤 다시 만납니다.</p>
-                    <time>2026.06.24</time>
-                </div>
-            </article>
-        </div>
-    </div>
-</section>
-
-<!-- ============ PRICING ============ -->
-<section id="pricing" class="sec sec-gray">
-    <div class="sec-inner">
-        <p class="kicker reveal">요금제</p>
-        <h2 class="sec-title lines"><span><i>쓰는 만큼.</i></span><span><i>가르치는 만큼.</i></span></h2>
-        <p class="sec-sub reveal">무료로 시작해서, 필요할 때만 올리세요.<br>숨은 비용 없이 — 쓰는 만큼, 가르치는 만큼만.</p>
-
-        <div class="price-grid">
-            <div class="price reveal">
-                <div class="p-name">기본</div>
-                <div class="p-cost">무료</div>
-                <ul>
-                    <li>단어장 3개 · 시험지 10개</li>
-                    <li>1회 추출 10p · 문제 15문항</li>
-                    <li>AI 크레딧 <b>50</b>/월</li>
-                    <li>기본 학습 모드 · SRS 복습</li>
-                    <li>반 참여</li>
-                </ul>
-                <a href="/app/" class="p-btn ghost">시작하기</a>
-            </div>
-            <div class="price feat reveal">
-                <div class="p-badge">가장 인기</div>
-                <div class="p-name">프리미엄</div>
-                <div class="p-cost">₩4,900<i>/월</i></div>
-                <ul>
-                    <li>단어장 · 시험지 <b>무제한</b></li>
-                    <li>1회 추출 50p · 문제 50문항</li>
-                    <li>AI 크레딧 <b>600</b>/월</li>
-                    <li><b>AI 예문 첨삭 · 학습 플래너</b></li>
-                    <li>프리미엄 학습 모드 · 학부모 리포트</li>
-                    <li>워터마크 없는 PDF</li>
-                </ul>
-                <a href="/app/" class="p-btn">프리미엄 시작</a>
-            </div>
-            <div class="price teach reveal">
-                <div class="p-name">선생님 Basic</div>
-                <div class="p-cost">₩12,900<i>/월</i></div>
-                <ul>
-                    <li>프리미엄의 모든 기능</li>
-                    <li>1회 추출 100p · 문제 100문항</li>
-                    <li>AI 크레딧 <b>2,500</b>/월</li>
-                    <li><b>반 개설 5개 · 학생 40명</b></li>
-                    <li>반 성적 대시보드</li>
-                </ul>
-                <a href="/app/" class="p-btn teach">선생님으로 시작</a>
-            </div>
-            <div class="price teach reveal">
-                <div class="p-badge pro">최상위</div>
-                <div class="p-name">선생님 Pro</div>
-                <div class="p-cost">₩29,900<i>/월</i></div>
-                <ul>
-                    <li>선생님 Basic의 모든 기능</li>
-                    <li>1회 추출 200p · 문제 100문항</li>
-                    <li>AI 크레딧 <b>6,000</b>/월</li>
-                    <li><b>반 20개 · 학생 60명</b></li>
-                    <li>우선 지원</li>
-                </ul>
-                <a href="/app/" class="p-btn teach">Pro로 시작</a>
-            </div>
-        </div>
-
-        <div class="addons reveal">
-            <span class="ad-t">필요할 때 더하기</span>
-            <div class="ad-list">
-                <div class="ad"><b>AI 크레딧 팩</b><span>+500 크레딧</span><i>₩4,900</i></div>
-                <div class="ad"><b>반 슬롯</b><span>반 +1개</span><i>₩3,900</i></div>
-                <div class="ad"><b>학생 슬롯</b><span>학생 +10명</span><i>₩3,900</i></div>
-            </div>
-            <p class="ad-note">AI 크레딧은 시험지 생성·예문 첨삭·학습 플래너 등 AI 작업에 사용됩니다.</p>
+            <div class="up reveal"><h3>🧠 기기 안에서 채점</h3><p>모델이 브라우저에서 실행돼요. 답안은 기기 밖으로 나가지 않습니다.</p></div>
+            <div class="up reveal"><h3>🔒 데이터 최소 수집</h3><p>학습에 필요한 것만 저장하고, 답안 원문은 외부로 보내지 않아요.</p></div>
         </div>
     </div>
 </section>
@@ -538,16 +263,17 @@
 <!-- ============ CTA ============ -->
 <section class="final">
     <div class="final-inner">
-        <h2 class="lines"><span><i>오늘 찍은 단어장이</i></span><span><i>내일의 시험이 됩니다.</i></span></h2>
-        <a href="/app/" class="btn-primary lg reveal">무료로 시작하기</a>
+        <h2 class="lines"><span><i>오늘 올린 단어장이,</i></span><span><i>당신만의 시험이 됩니다.</i></span></h2>
+        <a href="/app/" class="btn-primary lg reveal">시작하기</a>
+        <p class="final-note reveal">회원가입은 초대받은 분만 가능한 비공개 베타예요.</p>
     </div>
 </section>
 
 <footer>
     <div class="foot-inner">
-        <img src="assets/logo.png" alt="VoQuiz" class="foot-logo">
-        <p>찍고, 외우고, 시험까지 — 단어 공부의 모든 것.</p>
-        <small><span>© 2026 VoQuiz. AI 단어 학습 플랫폼.</span> · <a href="#" id="admin-trigger" class="admin-trigger">관리자</a></small>
+        <img src="assets/logo.png?v=2" alt="VoQuiz" class="foot-logo">
+        <p>찍고, 만들고, 기기 안에서 채점까지 — 단어 공부의 모든 것.</p>
+        <small><span>© 2026 VoQuiz</span> · <a href="#" id="admin-trigger" class="admin-trigger">관리자</a></small>
     </div>
 </footer>
 
