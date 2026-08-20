@@ -1,834 +1,557 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VoQuiz — AI 단어 학습</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Gowun+Dodum&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=37">
-    <link rel="icon" href="Favicon.png?v=4">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VoQuiz — 찍으면, 시험이 됩니다.</title>
+<meta name="description" content="사진 한 장이면 끝. AI가 단어를 읽어 시험을 만들고, 채점하고, 잊을 때쯤 복습까지 챙깁니다. 학생도 선생님도 VoQuiz 하나로.">
+<link rel="icon" href="assets/favicon.png">
+<link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
 
-<!-- ============================================================ -->
-<!-- 인증 화면 (로그인 / 회원가입 / 이메일 인증)                    -->
-<!-- ============================================================ -->
-<div id="view-auth" class="auth-wrap">
-    <button class="icon-btn theme-toggle-btn auth-theme-toggle" onclick="toggleTheme()" title="테마 전환">🌙</button>
-    <div class="auth-card">
-        <img src="VoQuiz_Logo_Light.png?v=4" alt="VoQuiz" class="auth-logo">
-        <p class="auth-tagline">단어장을 찍으면, AI가 시험을 만들어 드려요</p>
+<div id="progress"></div>
+<div class="grain"></div>
 
-        <!-- 로그인 -->
-        <div id="pane-login" class="auth-pane">
-            <input type="email" id="login-email" placeholder="이메일" autocomplete="username">
-            <input type="password" id="login-password" placeholder="비밀번호" autocomplete="current-password">
-            <button class="btn-primary" onclick="doLogin()">로그인</button>
-            <div class="auth-switch">계정이 없으신가요? <a onclick="showAuthPane('signup')">회원가입</a></div>
-            <div class="test-hint">🧪 테스트 계정: <b>test@vocashot.com</b> / <b>test1234</b></div>
-        </div>
-
-        <!-- 회원가입 -->
-        <div id="pane-signup" class="auth-pane hidden">
-            <input type="email" id="signup-email" placeholder="이메일" autocomplete="username">
-            <input type="password" id="signup-password" placeholder="비밀번호" autocomplete="new-password" oninput="checkPwRules()">
-            <ul id="pw-rules" class="pw-rules">
-                <li data-rule="len">6~15자</li>
-                <li data-rule="alpha">영문자 포함</li>
-                <li data-rule="num">숫자 포함</li>
-                <li data-rule="special">특수문자 포함</li>
-            </ul>
-            <input type="text" id="signup-key" placeholder="🔑 가입 키 (베타)" autocomplete="off">
-            <button class="btn-primary" onclick="doSignup()">인증 코드 받기</button>
-            <div class="auth-switch">이미 계정이 있으신가요? <a onclick="showAuthPane('login')">로그인</a></div>
-        </div>
-
-        <!-- 이메일 인증 -->
-        <div id="pane-verify" class="auth-pane hidden">
-            <p class="verify-msg">📧 <span id="verify-target"></span> 로 보낸<br>인증 코드 6자리를 입력하세요.</p>
-            <input type="text" id="verify-code" placeholder="인증 코드 6자리" maxlength="6" inputmode="numeric">
-            <div id="dev-code-box" class="dev-code hidden"></div>
-            <button class="btn-primary" onclick="doVerify()">인증하고 시작하기</button>
-            <div class="auth-switch"><a onclick="resendCode()">코드 다시 받기</a> · <a onclick="showAuthPane('signup')">이메일 변경</a></div>
-        </div>
-
-        <div id="auth-error" class="auth-error hidden"></div>
+<!-- ============ NAV ============ -->
+<nav id="nav">
+    <div class="nav-inner">
+        <a href="#top" class="nav-logo"><img src="assets/logo.png" alt="VoQuiz"></a>
+        <ul class="nav-links">
+            <li><a href="#how">작동 방식</a></li>
+            <li><a href="#learn">학습</a></li>
+            <li><a href="#planner">플래너</a></li>
+            <li><a href="#news">소식</a></li>
+            <li><a href="#pricing">요금제</a></li>
+        </ul>
+        <a href="/app/" class="nav-cta">시작하기</a>
     </div>
-</div>
+</nav>
 
-<!-- ============================================================ -->
-<!-- 메인 앱                                                       -->
-<!-- ============================================================ -->
-<div id="view-app" class="hidden app-shell">
-    <!-- 왼쪽 사이드바 -->
-    <aside class="sidebar">
-        <div class="side-logo">
-            <img src="VoQuiz_Logo_Light.png?v=4" alt="VoQuiz" class="topbar-logo" onclick="navTo('dashboard')">
-        </div>
-
-        <!-- 프로필 (클릭 → 로그아웃) -->
-        <div class="side-profile-wrap">
-            <button class="side-profile" onclick="toggleProfileMenu(event)">
-                <span id="topbar-avatar" class="avatar-sm">🙂</span>
-                <span class="side-profile-info">
-                    <span id="topbar-nick" class="nick"></span>
-                </span>
-                <span class="side-profile-caret">▾</span>
-            </button>
-            <div id="profile-menu" class="profile-menu hidden">
-                <button class="pm-item" onclick="openEditProfile()">✏️ 정보수정</button>
-                <button class="pm-logout" onclick="doLogout()">🚪 로그아웃</button>
+<!-- ============ HERO (스크롤 스크럽) ============ -->
+<header id="top" class="hero">
+    <div class="hero-aurora"></div>
+    <div class="hero-sticky">
+        <div class="hero-copy" id="hero-copy">
+            <p class="eyebrow">VoQuiz</p>
+            <h1 class="hero-title">찍으면,<br>시험이 됩니다.</h1>
+            <p class="hero-sub">사진 한 장이면 충분해요. AI가 단어를 읽어<br>시험을 만들고, 채점하고, 복습까지 끝냅니다.</p>
+            <div class="hero-cta">
+                <a href="/app/" class="btn-primary">무료로 시작하기</a>
+                <a href="#how" class="btn-link">어떻게 작동하나요 ›</a>
             </div>
         </div>
 
-        <!-- 내비게이션 -->
-        <nav class="side-nav">
-            <button class="side-link active" data-nav="dashboard" onclick="navTo('dashboard')"><span class="side-ico" data-icon="home"></span> <span data-i18n="nav.dashboard">대시보드</span></button>
-            <button class="side-link" data-nav="wordbooks" onclick="navTo('wordbooks')"><span class="side-ico" data-icon="book"></span> <span data-i18n="nav.wordbooks">내 단어장</span></button>
-            <button class="side-link" data-nav="exams" onclick="navTo('exams')"><span class="side-ico" data-icon="doc"></span> <span data-i18n="nav.exams">내 시험지</span></button>
-            <button class="side-link" id="nav-chat" onclick="openChat()"><span class="side-ico">🤖</span> <span>AI 튜터</span></button>
-            <button class="side-link hidden" id="nav-admin" onclick="openAdminView()"><span class="side-ico">🛠</span> <span>파일럿 데이터</span></button>
-        </nav>
-
-        <!-- 하단: 설정 -->
-        <div class="side-bottom">
-            <button class="side-link" onclick="openProfile()"><span class="side-ico" data-icon="gear"></span> <span data-i18n="nav.settings">설정</span></button>
-        </div>
-    </aside>
-
-    <main class="container main-area">
-
-        <!-- 상단 스트립: 다크모드 -->
-        <div class="topstrip">
-            <div class="mode-status" id="mode-status"></div>
-            <button id="theme-toggle" class="side-icon-btn sm theme-toggle-btn" onclick="toggleTheme()" title="테마 전환"></button>
-        </div>
-
-
-        <!-- 대시보드 (메인) -->
-        <section id="view-dashboard">
-            <!-- 온디바이스 AI 다운로드 배너 (아직 안 받았고 WebGPU 지원 시에만 노출) -->
-            <div id="llm-banner" class="llm-banner hidden">
-                <span class="llm-banner-ico">🧠</span>
-                <div class="llm-banner-body">
-                    <b>온디바이스 AI를 준비할까요?</b>
-                    <span class="muted">주관식 채점을 이 기기 안에서 처리해요. 한 번만 내려받으면 돼요 (약 1.4GB).</span>
-                </div>
-                <button class="btn-primary" onclick="downloadLLM()">지금 다운로드</button>
-                <button class="btn-mini" onclick="dismissLLMBanner()">나중에</button>
-            </div>
-            <!-- 통계 개요 -->
-            <div class="dash-stats">
-                <h1 id="dash-greeting" class="dash-greeting">안녕하세요 👋</h1>
-
-
-                <!-- 공유 (학부모 등에게 진도 리포트 공유) -->
-                <div class="card share-card">
-                    <div class="share-head">
-                        <div>
-                            <h2 style="display:inline">공유</h2>
-                            <span id="share-status" class="share-status off">공유 안 함</span>
-                            <p class="muted" style="margin:4px 0 0">읽기전용 진도 리포트 링크를 만들어 공유하세요.</p>
-                        </div>
-                        <div id="share-inactive">
-                            <button class="btn-accent" onclick="createShare()">🔗 공유 시작</button>
-                        </div>
+        <div class="hero-device" id="hero-device">
+            <div class="window">
+                <div class="window-bar"><span></span><span></span><span></span></div>
+                <div class="window-body">
+                    <div class="mock-top">
+                        <div class="mock-greet">안녕하세요, <b>테스터</b>님 👋</div>
+                        <div class="mock-chip">선생님</div>
                     </div>
-                    <div id="share-active" class="hidden">
-                        <div class="share-box">
-                            <input type="text" id="share-url" readonly onclick="this.select()">
-                            <button class="btn-primary" style="width:auto" onclick="copyShare()">복사</button>
-                            <button class="btn-secondary" onclick="downloadShareReport()">📄 리포트 다운로드</button>
-                            <button class="btn-ghost danger" onclick="revokeShare()">중단</button>
+                    <div class="mock-kpis">
+                        <div class="mock-kpi"><b>162</b><span>총 단어</span></div>
+                        <div class="mock-kpi"><b>12</b><span>시험지</span></div>
+                        <div class="mock-kpi"><b>94<i>%</i></b><span>평균 점수</span></div>
+                        <div class="mock-kpi"><b>100<i>%</i></b><span>최고 점수</span></div>
+                    </div>
+                    <div class="mock-panels">
+                        <div class="mock-card">
+                            <div class="mock-card-t">점수 추이</div>
+                            <svg viewBox="0 0 300 110" class="mock-chart" preserveAspectRatio="none">
+                                <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#2979ff" stop-opacity=".38"/>
+                                    <stop offset="100%" stop-color="#2979ff" stop-opacity="0"/>
+                                </linearGradient></defs>
+                                <path d="M0 82 L60 70 L120 74 L180 40 L240 30 L300 12 L300 110 L0 110 Z" fill="url(#ga)"/>
+                                <path class="spark" d="M0 82 L60 70 L120 74 L180 40 L240 30 L300 12" fill="none" stroke="#2979ff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <div class="mock-card">
+                            <div class="mock-card-t">단어 숙련도</div>
+                            <div class="mock-bar"><i style="width:62%;background:#22c55e"></i><i style="width:26%;background:#2979ff"></i><i style="width:12%;background:#ef4444"></i></div>
+                            <div class="mock-legend"><span>정복 101</span><span>학습중 42</span><span>취약 19</span></div>
+                            <div class="mock-words">
+                                <div><b>permeate</b><em>스며들다</em></div>
+                                <div><b>vindicate</b><em>정당성을 입증하다</em></div>
+                                <div><b>idiosyncratic</b><em>특이한</em></div>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</header>
 
-                <!-- 개인 학습 통계 (학생/일반) -->
-                <div id="dash-personal">
-                <div class="kpi-row">
-                    <div class="kpi"><div class="kpi-num" id="kpi-wordbooks">0</div><div class="kpi-label">단어장</div></div>
-                    <div class="kpi"><div class="kpi-num" id="kpi-words">0</div><div class="kpi-label">총 단어</div></div>
-                    <div class="kpi"><div class="kpi-num" id="kpi-exams">0</div><div class="kpi-label">시험지</div></div>
-                    <div class="kpi"><div class="kpi-num" id="kpi-attempts">0</div><div class="kpi-label">응시 횟수</div></div>
-                    <div class="kpi accent"><div class="kpi-num" id="kpi-avg">0<span class="unit">%</span></div><div class="kpi-label">평균 점수</div></div>
-                    <div class="kpi accent"><div class="kpi-num" id="kpi-best">0<span class="unit">%</span></div><div class="kpi-label">최고 점수</div></div>
-                </div>
-                <div class="stats-lower">
-                    <div class="chart-card">
-                        <h3>시험지별 성적</h3>
-                        <div id="exam-scores" class="exam-scores"></div>
-                    </div>
-                    <div class="recent-card">
-                        <h3>최근 응시</h3>
-                        <div id="recent-list" class="recent-list"></div>
-                    </div>
-                </div>
+<!-- ============ 지표 ============ -->
+<section class="strip">
+    <div class="strip-inner">
+        <div class="stat reveal"><b data-count="162">0</b><span>사진 한 장에서 뽑은 단어</span></div>
+        <div class="stat reveal"><b data-count="5">0</b><span>골라 쓰는 시험 형식</span></div>
+        <div class="stat reveal"><b data-count="2">0</b><span>지원 언어</span></div>
+        <div class="stat reveal"><b>∞</b><span>언제든 다시 도전</span></div>
+    </div>
+</section>
 
-                </div><!-- /dash-personal -->
+<!-- ============ PINNED — 작동 방식 (스크롤에 따라 장면 전환) ============ -->
+<section id="how" class="pin">
+    <div class="pin-sticky">
+        <div class="pin-grid">
+            <div class="pin-left">
+                <p class="kicker">작동 방식</p>
+                <h2 class="pin-title">세 단계면<br>충분합니다.</h2>
+                <ol class="steps" id="steps">
+                    <li class="step active" data-step="0">
+                        <span class="s-num">01</span>
+                        <div><h3>찍는다</h3><p>단어장을 사진이나 PDF로 올리기만 하세요. AI가 단어·뜻·예문·페이지까지 정확히 읽어냅니다.</p></div>
+                        <div class="s-rail"><i></i></div>
+                    </li>
+                    <li class="step" data-step="1">
+                        <span class="s-num">02</span>
+                        <div><h3>만든다</h3><p>범위와 형식만 고르면, 그 단어들로 진짜 같은 시험지가 완성됩니다.</p></div>
+                        <div class="s-rail"><i></i></div>
+                    </li>
+                    <li class="step" data-step="2">
+                        <span class="s-num">03</span>
+                        <div><h3>푼다</h3><p>제출하는 순간 AI가 채점하고, 해설과 약한 단어까지 콕 짚어 줍니다.</p></div>
+                        <div class="s-rail"><i></i></div>
+                    </li>
+                </ol>
             </div>
 
-            <div id="tab-wordbooks" class="tab-panel hidden">
-                <div class="panel-head">
-                    <h2>내 단어장</h2>
-                    <button class="btn-accent" onclick="startUpload()">＋ 새 단어장 만들기</button>
-                </div>
-                <div id="wordbook-list" class="card-grid"></div>
-            </div>
-
-            <div id="tab-exams" class="tab-panel hidden">
-                <div class="panel-head">
-                    <h2>내 시험지</h2>
-                    <button class="btn-accent" onclick="startExamCreate()">＋ 시험지 만들기</button>
-                </div>
-                <div id="exam-list" class="card-grid"></div>
-            </div>
-
-
-        </section>
-
-        <!-- 업로드 & 추출 -->
-        <section id="view-upload" class="hidden">
-            <button class="back-btn" onclick="goDashboard()">← 대시보드</button>
-            <div class="card">
-                <h2>📂 단어장 업로드</h2>
-                <p class="sub">PDF 또는 사진(JPG/PNG)을 올리면 AI가 단어를 추출합니다.</p>
-
-                <div id="upload-drop" class="upload-area">
-                    <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png" hidden>
-                    <div class="upload-icon">⬆️</div>
-                    <p>클릭해서 파일 선택 (PDF / JPG / PNG)</p>
-                </div>
-
-                <div id="upload-info" class="hidden">
-                    <div class="file-bar">
-                        <span>📄 <b id="up-filename"></b> <span id="up-pages" class="muted"></span></span>
-                        <button class="btn-close" onclick="resetUpload()">×</button>
-                    </div>
-                    <div class="range-row">
-                        <label>단어장 언어 <span class="muted">(외울 단어)</span></label>
-                        <div class="lang-select">
-                            <label class="lang-opt"><input type="radio" name="wbLang" value="en" checked> 🇺🇸 영어</label>
-                            <label class="lang-opt"><input type="radio" name="wbLang" value="zh"> 🇨🇳 중국어</label>
-                            <label class="lang-opt"><input type="radio" name="wbLang" value="ja"> 🇯🇵 일본어</label>
-                            <label class="lang-opt"><input type="radio" name="wbLang" value="es"> 🇪🇸 스페인어</label>
-                            <label class="lang-opt"><input type="radio" name="wbLang" value="fr"> 🇫🇷 프랑스어</label>
-                            <label class="lang-opt"><input type="radio" name="wbLang" value="de"> 🇩🇪 독일어</label>
+            <div class="pin-right">
+                <div class="stage" id="stage">
+                    <!-- 장면 1 : 추출 -->
+                    <div class="scene active" data-step="0">
+                        <div class="paper">
+                            <div class="paper-line"><b>permeate</b><em>스며들다, 퍼지다</em></div>
+                            <div class="paper-line"><b>discord</b><em>불화, 의견 충돌</em></div>
+                            <div class="paper-line"><b>elude</b><em>피하다</em></div>
+                            <div class="paper-line"><b>vindicate</b><em>정당성을 입증하다</em></div>
+                            <div class="paper-line dim"><b>buttress</b><em>지지하다</em></div>
+                            <div class="paper-scan"></div>
+                        </div>
+                        <div class="chiplist">
+                            <div class="chip"><b>permeate</b><span>스며들다, 퍼지다</span><i>P.1</i></div>
+                            <div class="chip"><b>discord</b><span>불화, 의견 충돌</span><i>P.1</i></div>
+                            <div class="chip"><b>elude</b><span>피하다, 빠져나가다</span><i>P.2</i></div>
                         </div>
                     </div>
-                    <div class="range-row">
-                        <label>뜻 언어 <span class="muted">(단어 뜻을 어떤 언어로)</span></label>
-                        <div class="lang-select">
-                            <label class="lang-opt"><input type="radio" name="wbMeaningLang" value="ko" checked> 🇰🇷 한국어</label>
-                            <label class="lang-opt"><input type="radio" name="wbMeaningLang" value="en"> 🇺🇸 영어</label>
-                            <label class="lang-opt"><input type="radio" name="wbMeaningLang" value="ja"> 🇯🇵 일본어</label>
-                            <label class="lang-opt"><input type="radio" name="wbMeaningLang" value="zh"> 🇨🇳 중국어</label>
+
+                    <!-- 장면 2 : 생성 -->
+                    <div class="scene" data-step="1">
+                        <div class="gen">
+                            <div class="gen-head"><span class="dot-live"></span> AI가 문제를 만드는 중…</div>
+                            <div class="gen-bar"><i></i></div>
+                            <div class="gen-list">
+                                <div class="gen-row"><b>TOEFL Style</b><em>문맥 추론</em></div>
+                                <div class="gen-row"><b>단어 → 뜻</b><em>4지선다</em></div>
+                                <div class="gen-row"><b>주관식</b><em>AI 채점</em></div>
+                            </div>
+                            <div class="gen-out">
+                                <p>The rare snow leopard managed to <u>____</u> researchers for years.</p>
+                                <div class="gen-opts"><span>confront</span><span class="ok">elude</span><span>capture</span><span>examine</span></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="range-row" id="page-range-row">
-                        <label>추출할 페이지 범위</label>
-                        <div class="range-inputs">
-                            <input type="number" id="start-page" value="1" min="1">
-                            <span>~</span>
-                            <input type="number" id="end-page" value="1" min="1">
-                            <button class="btn-mini" onclick="selectAllPages()">전체</button>
+
+                    <!-- 장면 3 : 채점 -->
+                    <div class="scene" data-step="2">
+                        <div class="result">
+                            <div class="ring" style="--p:94">
+                                <svg viewBox="0 0 120 120">
+                                    <circle cx="60" cy="60" r="52" class="ring-bg"/>
+                                    <circle cx="60" cy="60" r="52" class="ring-fg"/>
+                                </svg>
+                                <b>94<i>%</i></b>
+                            </div>
+                            <div class="res-rows">
+                                <div class="res-row ok"><span>elude</span><em>✓ 정답</em></div>
+                                <div class="res-row ok"><span>buttress</span><em>✓ 정답</em></div>
+                                <div class="res-row no"><span>desecrate</span><em>✗ 복습 큐로</em></div>
+                            </div>
+                            <p class="res-note">💡 AI가 해설을 남기고, 틀린 단어는 잊을 때쯤 다시 물어봅니다.</p>
                         </div>
                     </div>
-                    <button class="btn-primary" onclick="startExtract()">⚡ 단어 추출 시작</button>
-                </div>
-
-                <!-- 진행바 -->
-                <div id="extract-progress" class="progress-wrap hidden">
-                    <div class="progress-label"><span id="ep-msg">준비 중...</span><span id="ep-pct">0%</span></div>
-                    <div class="progress-track"><div id="ep-bar" class="progress-bar"></div></div>
-                    <div id="ep-log" class="log-box"></div>
-                </div>
-
-                <!-- 추출 결과 & 저장 -->
-                <div id="extract-result" class="hidden">
-                    <h3>✅ <span id="er-count">0</span>개 단어 추출 완료</h3>
-                    <p class="sub">저장할 단어만 체크로 남겨두세요. 체크 해제한 단어는 제외됩니다.</p>
-                    <div class="er-toolbar">
-                        <span>선택됨 <b id="er-selected">0</b> / <span id="er-total">0</span></span>
-                        <div class="er-toolbar-btns">
-                            <button class="btn-mini" onclick="erSelectAll(true)">전체 선택</button>
-                            <button class="btn-mini" onclick="erSelectAll(false)">전체 해제</button>
-                        </div>
-                    </div>
-                    <div id="er-preview" class="word-checklist"></div>
-                    <div class="save-form">
-                        <input type="text" id="wb-name" placeholder="단어장 이름 (예: 능률보카 Day 1~5)">
-                        <input type="text" id="wb-desc" placeholder="설명 (선택)">
-                        <button class="btn-accent" onclick="saveWordbook()">💾 단어장 저장</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 단어장 상세 -->
-        <section id="view-wordbook" class="hidden">
-            <button class="back-btn" onclick="goDashboard()">← 대시보드</button>
-            <div class="card">
-                <div class="panel-head">
-                    <div>
-                        <h2 id="wbd-name"></h2>
-                        <p class="sub" id="wbd-desc"></p>
-                    </div>
-                    <div class="wbd-actions">
-                        <button class="btn-accent" onclick="openStudySetup()">▶ 학습</button>
-                        <button class="btn-secondary hidden" id="wbd-source-btn" onclick="downloadWbSource()">📄 원본 다운로드</button>
-                        <button class="btn-ghost danger" onclick="deleteWordbook()">삭제</button>
-                    </div>
-                </div>
-                <div id="wbd-words" class="word-table-wrap"></div>
-            </div>
-        </section>
-
-        <!-- 시험지 만들기 (단어장 여러 개 선택 가능) -->
-        <section id="view-exam-create" class="hidden">
-            <button class="back-btn" onclick="navTo('exams')">← 내 시험지</button>
-            <div class="card">
-                <h2>📝 시험지 만들기</h2>
-                <p class="sub">단어장을 하나 이상 골라 AI 시험지를 만들어보세요.</p>
-
-                <div class="config-block">
-                    <label class="block-label">1. 단어장 선택 <span class="hint-text">(여러 개 선택 가능)</span></label>
-                    <div id="ec-wordbooks" class="ec-wb-grid"></div>
-                    <div class="sel-count">선택된 단어: <b id="ec-word-count">0</b>개 <span id="ec-wb-note" class="muted"></span></div>
-                    <div class="ec-range-row">
-                        <button type="button" class="btn-mini" onclick="openRangeModal()">🎯 범위 설정하기</button>
-                        <span id="ec-range-note" class="muted">범위: 전체 단어</span>
-                    </div>
-                </div>
-
-                <div class="config-block">
-                    <label class="block-label">2. 뜻 표기 언어</label>
-                    <div class="range-mode">
-                        <label><input type="radio" name="meaningLang" value="ko" checked> 🇰🇷 한국어 뜻</label>
-                        <label><input type="radio" name="meaningLang" value="en"> 🔤 영어 (영영풀이)</label>
-                    </div>
-                    <p class="muted" style="margin:6px 0 0">‘단어→뜻’, ‘뜻→단어’, ‘주관식’ 형식에서 뜻을 영어로 출제합니다.</p>
-                </div>
-
-                <div class="config-block">
-                    <label class="block-label">3. 시험지 형식</label>
-                    <div class="format-grid">
-                        <div class="format-card selected" data-fmt="toefl" onclick="selectFormat(this)">
-                            <b>TOEFL Style</b><span>문맥 속 어휘 추론</span></div>
-                        <div class="format-card" data-fmt="sat" onclick="selectFormat(this)">
-                            <b>SAT Style</b><span>고난도 유의어/정의</span></div>
-                        <div class="format-card" data-fmt="word_to_meaning" onclick="selectFormat(this)">
-                            <b>단어 → 뜻</b><span>단어 보고 뜻 선택</span></div>
-                        <div class="format-card" data-fmt="meaning_to_word" onclick="selectFormat(this)">
-                            <b>뜻 → 단어</b><span>뜻 보고 단어 선택</span></div>
-                        <div class="format-card" data-fmt="fill_meaning" onclick="selectFormat(this)">
-                            <b>주관식</b><span>단어 보고 뜻 쓰기</span></div>
-                    </div>
-                </div>
-
-                <div class="config-block inline">
-                    <label class="block-label">4. 문항 수</label>
-                    <input type="number" id="q-count" value="10" min="1" max="100" style="width:80px">
-                </div>
-
-
-                <button class="btn-accent" onclick="startGenerate()">🤖 AI로 시험지 생성</button>
-
-                <!-- 진행바 -->
-                <div id="gen-progress" class="progress-wrap hidden">
-                    <div class="progress-label"><span id="gp-msg">준비 중...</span><span id="gp-pct">0%</span></div>
-                    <div class="progress-track"><div id="gp-bar" class="progress-bar"></div></div>
-                    <div id="gp-log" class="log-box"></div>
-                </div>
-
-                <!-- 생성 결과 저장 -->
-                <div id="gen-result" class="hidden">
-                    <h3>✅ <span id="gr-count">0</span>문항 생성 완료</h3>
-                    <div class="save-form">
-                        <input type="text" id="exam-name" placeholder="시험지 이름 (예: Day1~5 TOEFL 모의고사)">
-                        <button class="btn-accent" onclick="saveExam()">💾 시험지 저장</button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 시험 응시 -->
-        <section id="view-take" class="hidden">
-            <button class="back-btn" onclick="goDashboard()">← 대시보드</button>
-            <div class="card">
-                <div class="panel-head">
-                    <div>
-                        <h2 id="take-name"></h2>
-                        <p class="sub" id="take-format"></p>
-                    </div>
-                    <div id="timer" class="timer hidden">⏱ <span id="timer-val">00:00</span></div>
-                </div>
-
-                <!-- 시작 옵션 (시간 제한) -->
-                <div id="take-setup">
-                    <div class="config-block">
-                        <label class="block-label">시간 제한</label>
-                        <div class="range-mode">
-                            <label><input type="radio" name="timeMode" value="none" checked> 없음</label>
-                            <label><input type="radio" name="timeMode" value="limit"> 제한 두기</label>
-                            <input type="number" id="time-min" value="10" min="1" style="width:70px"> 분
-                        </div>
-                    </div>
-                    <div class="take-actions">
-                        <button class="btn-primary" style="width:auto" onclick="beginExam()">시험 시작 ▶</button>
-                        <button class="btn-secondary" onclick="downloadSetupPdf()">📄 시험지 PDF 다운로드</button>
-                    </div>
-                    <p class="muted" style="margin-top:8px">시험을 풀지 않아도 시험지 PDF를 받을 수 있어요.</p>
-
-                    <!-- 지난 응시 기록 (결과 바로 보기) -->
-                    <div id="take-history" class="take-history"></div>
-                </div>
-
-                <!-- 문제 -->
-                <div id="take-questions" class="hidden">
-                    <div class="take-progress">
-                        <div class="take-progress-track"><div id="take-progress-bar" class="take-progress-bar"></div></div>
-                        <span class="take-progress-label">답변 <b id="take-answered">0</b> / <span id="take-qtotal">0</span></span>
-                    </div>
-                    <div id="questions-box"></div>
-                    <div class="take-submit-bar">
-                        <button class="btn-primary" onclick="submitExam()">🏁 제출하고 채점</button>
-                    </div>
-                </div>
-
-                <!-- 채점 진행바 -->
-                <div id="grade-progress" class="progress-wrap hidden">
-                    <div class="progress-label"><span id="grp-msg">채점 중...</span><span id="grp-pct">0%</span></div>
-                    <div class="progress-track"><div id="grp-bar" class="progress-bar"></div></div>
-                    <div id="grp-log" class="log-box"></div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 결과 리포트 -->
-        <section id="view-report" class="hidden">
-            <button class="back-btn" onclick="goDashboard()">← 대시보드</button>
-            <div class="card center">
-                <h2 id="rep-title">📊 채점 결과</h2>
-                <div class="score-circle" id="score-circle">0%</div>
-                <p class="score-sub">정답 <b id="rep-correct">0</b> / <span id="rep-total">0</span></p>
-                <div class="rep-actions">
-                    <button class="btn-accent" onclick="downloadReportPdf()">📄 리포트 PDF 다운로드</button>
-                    <button class="btn-ghost" onclick="retakeExam()">↺ 다시 풀기</button>
-                </div>
-                <div id="rep-detail" class="rep-detail"></div>
-                <div id="rep-history" class="rep-history"></div>
-            </div>
-        </section>
-
-
-        <!-- 플래시카드 학습 -->
-        <section id="view-flashcards" class="hidden">
-            <button class="back-btn" onclick="backToWordbook()">← 단어장</button>
-            <div class="card center">
-                <div class="fc-top">
-                    <span class="badge" id="fc-progress">1 / 1</span>
-                    <button class="btn-mini" onclick="fcShuffle()">🔀 섞기</button>
-                </div>
-                <div class="flashcard" id="flashcard" onclick="flipCard()">
-                    <div class="fc-inner" id="fc-inner">
-                        <div class="fc-face fc-front"><span id="fc-word">word</span><small>탭하면 뜻 보기</small></div>
-                        <div class="fc-face fc-back"><span id="fc-mean">뜻</span><small id="fc-ex"></small></div>
-                    </div>
-                </div>
-                <div class="fc-controls">
-                    <button class="btn-ghost" onclick="fcMove(-1)">← 이전</button>
-                    <button class="btn-primary" style="width:auto" onclick="fcMove(1)">다음 →</button>
-                </div>
-
-                <!-- 예문 쓰기 + AI 첨삭 (카드를 뒤집으면 표시) -->
-                <div id="fc-practice" class="fc-practice hidden">
-                    <div class="fc-practice-head">✍️ 이 단어로 예문을 써보세요</div>
-                    <textarea id="fc-sentence" class="fc-sentence" rows="2" placeholder="예: I will ___ this word in a sentence."></textarea>
-                    <div id="fc-practice-actions">
-                        <button class="btn-accent" style="width:auto" onclick="checkSentence()">🤖 AI 첨삭받기</button>
-                    </div>
-                    <div id="fc-feedback" class="fc-feedback hidden"></div>
-                </div>
-            </div>
-        </section>
-
-        <!-- 단어 맞추기 게임 -->
-        <section id="view-game" class="hidden">
-            <button class="back-btn" onclick="backToWordbook()">← 단어장</button>
-            <div class="card">
-                <div class="panel-head">
-                    <div><h2 id="game-title">🎮 단어 맞추기</h2><p class="sub" id="game-sub">단어와 뜻을 짝지어 보세요</p></div>
-                    <div class="game-stats">⏱ <span id="game-time">0s</span> · <span id="game-pairs">0/0</span></div>
-                </div>
-                <div id="game-board" class="game-board"></div>
-                <div id="game-done" class="game-done hidden">
-                    <h3 id="game-result">완료! 🎉</h3>
-                    <button class="btn-accent" style="width:auto" onclick="restartGame()">🔄 다시 하기</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- 가리고 외우기 (능동 회상 · retrieval practice) -->
-        <section id="view-cover" class="hidden">
-            <button class="back-btn" onclick="backToWordbook()">← 단어장</button>
-            <div class="card">
-                <div class="panel-head">
-                    <div><h2>🙈 가리고 외우기</h2><p class="sub">뜻을 가리고 스스로 떠올려 보세요. 능동 회상이 기억을 오래 남깁니다.</p></div>
-                    <div class="cover-toggle">
-                        <button class="btn-mini" id="cover-hide-btn" onclick="coverToggle('meaning')">뜻 가리기</button>
-                        <button class="btn-mini" onclick="coverToggle('word')">단어 가리기</button>
-                        <button class="btn-mini" onclick="coverRevealAll()">모두 보이기</button>
-                    </div>
-                </div>
-                <div id="cover-list" class="cover-list"></div>
-            </div>
-        </section>
-
-        <!-- 받아쓰기 (생성 연습 · production practice) -->
-        <section id="view-dictation" class="hidden">
-            <button class="back-btn" onclick="backToWordbook()">← 단어장</button>
-            <div class="card center">
-                <div class="fc-top"><span class="badge" id="dict-progress">1 / 1</span></div>
-                <div class="dict-meaning" id="dict-meaning">뜻</div>
-                <p class="muted" id="dict-hint"></p>
-                <input type="text" id="dict-input" class="dict-input" placeholder="단어를 입력하세요" autocomplete="off"
-                    onkeydown="if(event.key==='Enter')dictSubmit()">
-                <div id="dict-feedback" class="dict-feedback hidden"></div>
-                <div class="fc-controls">
-                    <button class="btn-ghost" onclick="dictReveal()">정답 보기</button>
-                    <button class="btn-primary" style="width:auto" onclick="dictSubmit()">확인 →</button>
-                </div>
-                <div id="dict-done" class="game-done hidden">
-                    <h3 id="dict-result">완료! 🎉</h3>
-                    <button class="btn-accent" style="width:auto" onclick="backToWordbook()">단어장으로</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- 스피드 퀴즈 (4지선다 · 재인 속도) -->
-        <section id="view-speed" class="hidden">
-            <button class="back-btn" onclick="backToWordbook()">← 단어장</button>
-            <div class="card center">
-                <div class="fc-top"><span class="badge" id="speed-progress">1 / 1</span>
-                    <span class="timer" id="speed-timer">⏱ <span id="speed-time">0</span>s</span></div>
-                <div class="speed-q" id="speed-q">단어</div>
-                <div id="speed-options" class="speed-options"></div>
-                <div id="speed-done" class="game-done hidden">
-                    <h3 id="speed-result">완료! 🎉</h3>
-                    <button class="btn-accent" style="width:auto" onclick="backToWordbook()">단어장으로</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- AI 튜터 (온디바이스 채팅) -->
-        <section id="view-chat" class="hidden">
-            <div class="card chat-card">
-                <div class="panel-head">
-                    <div>
-                        <h2>🤖 AI 튜터</h2>
-                        <p class="sub">단어 뜻·용법·예문을 자유롭게 물어보세요. (이 기기 안에서 답해요)</p>
-                    </div>
-                    <button class="btn-mini" onclick="clearChat()">🗑 대화 지우기</button>
-                </div>
-                <div id="chat-messages" class="chat-messages"></div>
-                <div class="chat-input-row">
-                    <input type="text" id="chat-input" placeholder="예: 'ephemeral' 를 예문과 함께 설명해줘"
-                           onkeydown="if(event.key==='Enter')sendChat()">
-                    <button class="btn-primary" style="width:auto" id="chat-send" onclick="sendChat()">보내기</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- 관리자: 파일럿 데이터 -->
-        <section id="view-admin" class="hidden">
-            <div class="card">
-                <div class="panel-head">
-                    <div><h2>🛠 파일럿 데이터</h2><p class="sub">채점 모드·온디바이스 성공률·오채점 신고</p></div>
-                    <button class="btn-mini" onclick="loadAdminPanel()">새로고침</button>
-                </div>
-                <div id="admin-body"><p class="muted">불러오는 중…</p></div>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- 정보수정 모달 (프로필 사진 · 닉네임) -->
-    <div id="edit-profile-modal" class="modal-overlay hidden" onclick="closeEditProfile(event)">
-        <div class="modal-card modal-sm" onclick="event.stopPropagation()">
-            <div class="modal-head">
-                <h2>✏️ 정보수정</h2>
-                <button class="btn-close" onclick="closeEditProfile()">×</button>
-            </div>
-            <div class="profile-avatar-row">
-                <label for="avatar-input" class="avatar-lg avatar-clickable" title="클릭해서 사진 변경">
-                    <span id="profile-avatar">🙂</span>
-                </label>
-                <div style="flex:1; min-width:0">
-                    <label class="block-label">닉네임</label>
-                    <div class="nick-row">
-                        <input type="text" id="profile-nickname" maxlength="20" placeholder="닉네임">
-                        <button class="btn-primary" style="width:auto" onclick="saveProfile()">저장</button>
-                    </div>
-                    <span class="muted" style="font-size:.8rem">사진을 클릭해 변경하세요 (PNG/JPG, 2MB 이하)</span>
-                    <input type="file" id="avatar-input" accept="image/*" hidden onchange="uploadAvatar()">
                 </div>
             </div>
         </div>
     </div>
+</section>
 
-    <!-- 설정 모달 (섹션이 모두 펼쳐진 넓은 창) -->
-    <div id="profile-modal" class="modal-overlay hidden" onclick="closeProfile(event)">
-        <div class="modal-card modal-wide" onclick="event.stopPropagation()">
-            <div class="modal-head">
-                <h2>⚙️ 설정</h2>
-                <button class="btn-close" onclick="closeProfile()">×</button>
+<!-- ============ EXAM ============ -->
+<section id="exam" class="sec">
+    <div class="sec-inner">
+        <p class="kicker reveal">시험</p>
+        <h2 class="sec-title lines"><span><i>당신의 교재로.</i></span><span><i>당신의 시험을.</i></span></h2>
+        <p class="sec-sub reveal">TOEFL·SAT부터 주관식까지. 형식만 고르면<br>AI가 당신의 단어로 진짜 시험을 만듭니다.</p>
+
+        <div class="fmt-grid">
+            <div class="fmt reveal"><b>TOEFL Style</b><span>문맥 속 어휘 추론</span></div>
+            <div class="fmt reveal"><b>SAT Style</b><span>고난도 유의어·정의</span></div>
+            <div class="fmt reveal"><b>단어 → 뜻</b><span>4지선다</span></div>
+            <div class="fmt reveal"><b>뜻 → 단어</b><span>4지선다</span></div>
+            <div class="fmt reveal"><b>주관식</b><span>뜻 쓰기 · AI 채점</span></div>
+        </div>
+
+        <div class="qcard reveal">
+            <div class="qcard-q"><i>1.</i> The rare snow leopard managed to <u>____</u> researchers for years, hiding in the steep cliffs of the Himalayas.</div>
+            <div class="qopts">
+                <div class="qopt">A. confront</div>
+                <div class="qopt right">B. elude <em>정답</em></div>
+                <div class="qopt">C. capture</div>
+                <div class="qopt">D. examine</div>
             </div>
+            <div class="qexp">💡 ‘elude’는 ‘피하다, 빠져나가다’라는 뜻으로, 눈표범이 절벽에 숨어 연구자들을 피했다는 문맥에 가장 적합합니다.</div>
+        </div>
+        <p class="caption reveal">실제 AI가 만든 문항이에요.</p>
+    </div>
+</section>
 
-            <div class="settings-grid">
-                <section class="settings-block">
-                    <h3>🔑 비밀번호 변경</h3>
-                    <input type="password" class="settings-input" id="pw-current" placeholder="현재 비밀번호" autocomplete="current-password">
-                    <input type="password" class="settings-input" id="pw-new" placeholder="새 비밀번호 (6~15자, 영문+숫자+특수문자)" autocomplete="new-password" oninput="checkPwChangeRules()">
-                    <ul id="pw-change-rules" class="pw-rules" style="margin:8px 0">
-                        <li data-rule="len">6~15자</li>
-                        <li data-rule="alpha">영문자 포함</li>
-                        <li data-rule="num">숫자 포함</li>
-                        <li data-rule="special">특수문자 포함</li>
-                    </ul>
-                    <input type="password" class="settings-input" id="pw-confirm" placeholder="새 비밀번호 확인" autocomplete="new-password">
-                    <button class="btn-primary" style="margin-top:10px" onclick="changePassword()">비밀번호 변경</button>
-                </section>
+<!-- ============ LEARN ============ -->
+<section id="learn" class="sec sec-dark">
+    <div class="sec-inner">
+        <p class="kicker reveal">학습</p>
+        <h2 class="sec-title lines"><span><i>외울 때까지,</i></span><span><i>잊을 때쯤 다시.</i></span></h2>
+        <p class="sec-sub reveal">플래시카드부터 받아쓰기·스피드 퀴즈까지 8가지 방법으로 외우고,<br>망각곡선이 잊을 때쯤 딱 맞춰 다시 물어봅니다.</p>
 
-                <div class="settings-stack">
-                    <section class="settings-block compact">
-                        <h3>🗂 데이터 관리</h3>
-                        <button class="btn-ghost danger" style="width:100%" onclick="resetStats()">📊 통계 초기화 (응시 기록·숙련도 삭제)</button>
-                        <p class="muted" style="margin-top:8px">단어장·시험지는 유지되고 점수·응시 기록만 초기화돼요.</p>
-                    </section>
-                    <section class="settings-block" id="ondevice-settings">
-                        <h3>🧠 온디바이스 AI</h3>
-                        <div id="ondevice-settings-body"></div>
-                    </section>
+        <div class="learn-grid">
+            <div class="lcard reveal">
+                <div class="flip">
+                    <div class="flip-front"><b>permeate</b><small>탭하면 뜻 보기</small></div>
+                    <div class="flip-back"><b>스며들다, 퍼지다</b><small>The scent began to permeate the house.</small></div>
+                </div>
+                <h3>플래시카드 · 가리고 외우기</h3>
+                <p>카드를 넘기며 암기하거나, 뜻을 가리고 능동 회상으로 확인하세요.</p>
+            </div>
+            <div class="lcard reveal">
+                <div class="modes">
+                    <span>🙈 가리고 외우기</span><span>⌨️ 받아쓰기</span>
+                    <span>🔗 짝 맞추기</span><span>⚡ 스피드 퀴즈</span>
+                    <span>🔤 스펠링</span><span>📝 예문 채우기</span>
+                </div>
+                <h3>8가지 학습 모드</h3>
+                <p>타이핑·게임·빈칸 채우기까지. 단어를 여러 각도로 손에 익힙니다.</p>
+            </div>
+            <div class="lcard reveal">
+                <div class="srs">
+                    <div class="srs-row"><span>1일</span><i style="width:16%"></i></div>
+                    <div class="srs-row"><span>4일</span><i style="width:36%"></i></div>
+                    <div class="srs-row"><span>16일</span><i style="width:66%"></i></div>
+                    <div class="srs-row"><span>35일</span><i style="width:92%"></i></div>
+                </div>
+                <h3>간격 반복(SRS)</h3>
+                <p>맞힐수록 간격이 늘고, 틀리면 즉시 다시 나옵니다.</p>
+            </div>
+        </div>
+
+        <div class="ai-check reveal">
+            <div class="ai-check-in">
+                <div class="ai-label">✍️ 이 단어로 예문을 써보세요</div>
+                <div class="ai-input">A strong smell of coffee began to permeate the whole office.</div>
+                <div class="ai-fb">
+                    <b>✅ 잘 썼어요!</b>
+                    <p>커피 향이 사무실 전체에 퍼지는 모습을 ‘permeate’로 아주 자연스럽고 생생하게 표현했어요.</p>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- 프로필 사진 크롭 모달 -->
-    <div id="crop-modal" class="modal-overlay hidden">
-        <div class="modal-card" onclick="event.stopPropagation()">
-            <div class="modal-head">
-                <h2>사진 편집</h2>
-                <button class="btn-close" onclick="closeCrop()">×</button>
-            </div>
-            <p class="muted" style="margin:-8px 0 14px">드래그해서 위치를 맞추고, 슬라이더로 확대/축소하세요.</p>
-            <div class="crop-stage">
-                <canvas id="crop-canvas" width="280" height="280"></canvas>
-                <div class="crop-ring"></div>
-            </div>
-            <label class="block-label" style="margin-top:16px">확대 / 축소</label>
-            <input type="range" id="crop-zoom" min="1" max="3" step="0.01" value="1" class="crop-slider">
-            <div class="crop-actions">
-                <button class="btn-ghost" onclick="closeCrop()">취소</button>
-                <button class="btn-primary" style="width:auto" onclick="applyCrop()">적용</button>
+            <div class="ai-side">
+                <h3>AI 예문 첨삭</h3>
+                <p>맞게 썼는지, 어색하면 어떻게 고칠지 — 선생님이 옆에 있는 것처럼 짚어 줍니다.</p>
+                <span class="tag">프리미엄 · 선생님</span>
             </div>
         </div>
     </div>
-</div>
+</section>
 
-<!-- 학습 설정 모달 (범위 + 학습법 선택) -->
-<div id="study-modal" class="modal-overlay hidden" onclick="closeStudySetup(event)">
-    <div class="modal-card modal-lg" onclick="event.stopPropagation()">
-        <div class="modal-head"><h2>학습 시작</h2><button class="btn-close" onclick="closeStudySetup()">×</button></div>
+<!-- ============ PLANNER ============ -->
+<section id="planner" class="sec">
+    <div class="sec-inner">
+        <p class="kicker reveal">AI 학습 플래너</p>
+        <h2 class="sec-title lines"><span><i>언제 무엇을 외울지,</i></span><span><i>AI가 짜 드립니다.</i></span></h2>
+        <p class="sec-sub reveal">목표와 시험 날짜만 정하세요. 에빙하우스 망각곡선에 맞춰<br>AI가 ‘오늘 무엇을 외울지’를 매일 캘린더에 채워 줍니다.</p>
 
-        <div class="config-block">
-            <label class="block-label">1. 학습 범위</label>
-            <div class="range-inputs">
-                <input type="number" id="study-start" value="1" min="1" oninput="updateStudyCount()"> ~
-                <input type="number" id="study-end" value="10" min="1" oninput="updateStudyCount()">
-                <button class="btn-mini" onclick="studySelectAll()">전체</button>
-            </div>
-            <div class="sel-count">선택된 단어 <b id="study-count">0</b>개</div>
-        </div>
-
-        <div class="config-block">
-            <label class="block-label">2. 학습 방법</label>
-            <div class="method-grid">
-                <div class="method-card selected" data-method="flashcard" onclick="selectMethod(this)">
-                    <div class="method-ico">🎴</div><b>플래시카드</b><span>카드를 넘기며 암기</span></div>
-                <div class="method-card" data-method="cover" onclick="selectMethod(this)">
-                    <div class="method-ico">🙈</div><b>가리고 외우기</b><span>뜻을 가리고 능동 회상</span></div>
-                <div class="method-card" data-method="dictation" onclick="selectMethod(this)">
-                    <div class="method-ico">⌨️</div><b>받아쓰기</b><span>뜻 보고 단어 타이핑</span></div>
-                <div class="method-card" data-method="game" onclick="selectMethod(this)">
-                    <div class="method-ico">🎮</div><b>단어 게임</b><span>게임으로 재미있게</span></div>
-            </div>
-        </div>
-
-        <div class="config-block hidden" id="study-game-types">
-            <label class="block-label">3. 게임 유형</label>
-            <div class="method-grid">
-                <div class="method-card selected" data-game="match" onclick="selectGameType(this)">
-                    <div class="method-ico">🔗</div><b>짝 맞추기</b><span>단어 ↔ 뜻</span></div>
-                <div class="method-card" data-game="match_def" id="gt-def" onclick="selectGameType(this)">
-                    <div class="method-ico">🔗</div><b>짝 맞추기</b><span>단어 ↔ 영영풀이</span></div>
-                <div class="method-card" data-game="speed" onclick="selectGameType(this)">
-                    <div class="method-ico">⚡</div><b>스피드 퀴즈</b><span>4지선다 빠르게</span></div>
-                <div class="method-card" data-game="spelling" onclick="selectGameType(this)">
-                    <div class="method-ico">🔤</div><b>스펠링</b><span>빈칸 채우기</span></div>
-                <div class="method-card" data-game="sentence_fill" id="gt-sentence" onclick="selectGameType(this)">
-                    <div class="method-ico">📝</div><b>예문 채우기</b><span>문장 빈칸에 단어</span></div>
-            </div>
-        </div>
-
-        <button class="btn-accent" style="width:100%; margin-top:16px" onclick="startStudy()">▶ 학습 시작</button>
-    </div>
-</div>
-
-<!-- 재사용 입력 모달 (반 만들기 등) -->
-<div id="input-modal" class="modal-overlay hidden" onclick="closeInputModal(event)">
-    <div class="modal-card modal-sm" onclick="event.stopPropagation()">
-        <div class="modal-head"><h2 id="im-title">입력</h2><button class="btn-close" onclick="closeInputModal()">×</button></div>
-        <p id="im-desc" class="muted" style="margin:-6px 0 12px"></p>
-        <input type="text" id="im-input" onkeydown="if(event.key==='Enter')submitInputModal()">
-        <div style="display:flex; gap:10px; margin-top:16px; justify-content:flex-end">
-            <button class="btn-ghost" onclick="closeInputModal()">취소</button>
-            <button class="btn-primary" style="width:auto" onclick="submitInputModal()" id="im-ok">확인</button>
-        </div>
-    </div>
-</div>
-
-<!-- 확인 팝업 모달 (confirm 대체) -->
-<div id="confirm-modal" class="modal-overlay hidden" onclick="cancelConfirmModal(event)">
-    <div class="modal-card modal-sm" onclick="event.stopPropagation()">
-        <div class="modal-head"><h2 id="cm-title">확인</h2><button class="btn-close" onclick="cancelConfirmModal()">×</button></div>
-        <p id="cm-msg" class="confirm-msg"></p>
-        <div class="confirm-actions">
-            <button class="btn-ghost" onclick="cancelConfirmModal()">취소</button>
-            <button class="btn-primary" id="cm-ok" style="width:auto" onclick="okConfirmModal()">확인</button>
-        </div>
-    </div>
-</div>
-
-
-<!-- 시험지 PDF 커스텀 (미리보기 + 옵션) -->
-<div id="pdf-modal" class="modal-overlay hidden" onclick="closePdfModal(event)">
-    <div class="modal-card modal-xl" onclick="event.stopPropagation()">
-        <div class="modal-head"><h2>시험지 PDF 만들기</h2><button class="btn-close" onclick="closePdfModal()">×</button></div>
-        <div class="pdf-layout">
-            <!-- 옵션 -->
-            <div class="pdf-options">
-                <label class="block-label">제목</label>
-                <input type="text" id="pdf-title" class="settings-input" oninput="renderPdfPreview()">
-
-                <label class="block-label">서체</label>
-                <div class="pdf-seg" id="pdf-font">
-                    <button data-v="round" class="on" onclick="pdfSet('font','round',this)">둥근고딕</button>
-                    <button data-v="gothic" onclick="pdfSet('font','gothic',this)">고딕</button>
-                    <button data-v="myeongjo" onclick="pdfSet('font','myeongjo',this)">명조</button>
+        <div class="plan-wrap">
+            <div class="plan-card reveal">
+                <div class="plan-goal">
+                    <span class="pg-ico">🧭</span>
+                    <div><b>여름방학 어휘 마스터</b><span>D-30 · 162단어 · 하루 8단어</span></div>
                 </div>
-
-                <label class="block-label">글자 크기</label>
-                <div class="pdf-seg" id="pdf-size">
-                    <button data-v="9" onclick="pdfSet('font_size',9,this)">작게</button>
-                    <button data-v="10" class="on" onclick="pdfSet('font_size',10,this)">보통</button>
-                    <button data-v="12" onclick="pdfSet('font_size',12,this)">크게</button>
+                <div class="plan-cal">
+                    <div class="cal-cell"><em>1</em><i class="d-new"></i></div>
+                    <div class="cal-cell"><em>2</em><i class="d-new"></i><i class="d-rev"></i></div>
+                    <div class="cal-cell"><em>3</em><i class="d-new"></i><i class="d-rev"></i></div>
+                    <div class="cal-cell off"><em>4</em></div>
+                    <div class="cal-cell"><em>5</em><i class="d-new"></i><i class="d-rev"></i></div>
+                    <div class="cal-cell today"><em>6</em><i class="d-new"></i><i class="d-rev"></i></div>
+                    <div class="cal-cell"><em>7</em><i class="d-rev"></i></div>
+                    <div class="cal-cell"><em>8</em><i class="d-new"></i><i class="d-rev"></i></div>
+                    <div class="cal-cell"><em>9</em><i class="d-new"></i><i class="d-rev"></i></div>
+                    <div class="cal-cell"><em>10</em><i class="d-rev"></i></div>
+                    <div class="cal-cell"><em>11</em><i class="d-new"></i><i class="d-rev"></i></div>
+                    <div class="cal-cell off"><em>12</em></div>
+                    <div class="cal-cell"><em>13</em><i class="d-rev"></i></div>
+                    <div class="cal-cell"><em>14</em><i class="d-new"></i><i class="d-rev"></i></div>
                 </div>
+                <div class="plan-legend"><span><i class="d-new"></i> 새 단어</span><span><i class="d-rev"></i> 복습</span><span class="off-note">쉬는 날은 자동으로 건너뜁니다</span></div>
+            </div>
 
-                <label class="block-label">단 수</label>
-                <div class="pdf-seg" id="pdf-cols">
-                    <button data-v="1" class="on" onclick="pdfSet('columns',1,this)">1단</button>
-                    <button data-v="2" onclick="pdfSet('columns',2,this)">2단</button>
+            <div class="plan-card reveal">
+                <div class="pc-t">📉 예상 망각곡선 &amp; 복습 시점</div>
+                <svg viewBox="0 0 300 120" class="curve" preserveAspectRatio="none">
+                    <defs><linearGradient id="cg" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#6c5ce7" stop-opacity=".28"/>
+                        <stop offset="100%" stop-color="#6c5ce7" stop-opacity="0"/>
+                    </linearGradient></defs>
+                    <path d="M0 22 L38 66 L44 24 L96 72 L102 24 L152 70 L158 24 L214 68 L220 24 L288 62 L288 120 L0 120 Z" fill="url(#cg)"/>
+                    <path d="M0 22 L38 66 L44 24 L96 72 L102 24 L152 70 L158 24 L214 68 L220 24 L288 62" fill="none" stroke="#6c5ce7" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    <g class="cdots"><circle cx="44" cy="24" r="3.4"/><circle cx="102" cy="24" r="3.4"/><circle cx="158" cy="24" r="3.4"/><circle cx="220" cy="24" r="3.4"/></g>
+                </svg>
+                <div class="plan-iv"><span>1일</span><span>3일</span><span>7일</span><span>17일</span><span>39일</span></div>
+                <p class="plan-note">간격을 점점 늘리는 분산 학습이 벼락치기보다 오래 남습니다. — 에빙하우스 · 간격 효과</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ============ ACADEMY ============ -->
+<section id="academy" class="sec">
+    <div class="sec-inner">
+        <p class="kicker reveal">학원 · 교사</p>
+        <h2 class="sec-title lines"><span><i>가르치는 사람을</i></span><span><i>위해 설계했습니다.</i></span></h2>
+        <p class="sec-sub reveal">반을 만들고 코드만 알려주면 끝. 시험지를 배정하면<br>채점은 AI가 대신하고, 성적표는 저절로 쌓입니다.</p>
+
+        <div class="class-demo reveal">
+            <div class="cd-head">
+                <div><b>중2 영어 A반</b><span class="code">EDX0EY</span></div>
+                <div class="cd-meta">학생 24명 · 과제 3개</div>
+            </div>
+            <table class="cd-table">
+                <thead><tr><th>학생</th><th>Day 1–5</th><th>Day 6–10</th><th>모의고사</th></tr></thead>
+                <tbody>
+                    <tr><td>김민준</td><td><b class="hi">100%</b></td><td><b class="hi">92%</b></td><td><b class="mid">78%</b></td></tr>
+                    <tr><td>이서연</td><td><b class="hi">96%</b></td><td><b class="mid">74%</b></td><td><b class="hi">88%</b></td></tr>
+                    <tr><td>박지호</td><td><b class="mid">68%</b></td><td><b class="lo">42%</b></td><td><span class="none">미응시</span></td></tr>
+                    <tr><td>최수아</td><td><b class="hi">100%</b></td><td><b class="hi">100%</b></td><td><b class="hi">94%</b></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="two-up">
+            <div class="up reveal"><h3>참여 코드 하나로</h3><p>학생은 코드만 입력하면 반에 들어옵니다. 초대도, 계정 관리도 필요 없습니다.</p></div>
+            <div class="up reveal"><h3>손으로 만들던 단어시험, 이제 그만</h3><p>단어장 한 번 올리면 주간 시험이 자동으로 나옵니다. 채점 시간은 0분.</p></div>
+        </div>
+    </div>
+</section>
+
+<!-- ============ REPORT ============ -->
+<section class="sec sec-dark">
+    <div class="sec-inner narrow">
+        <p class="kicker reveal">학부모 리포트</p>
+        <h2 class="sec-title lines"><span><i>성장은</i></span><span><i>보여야 합니다.</i></span></h2>
+        <p class="sec-sub reveal">링크 하나면 됩니다. 로그인도 앱도 없이,<br>학부모가 아이의 진도와 약한 단어를 한눈에 확인해요.</p>
+        <div class="report-mock reveal">
+            <div class="rm-head">📊 <b>테스터</b>님의 학습 리포트</div>
+            <div class="rm-kpis"><div><b>162</b><span>총 단어</span></div><div><b>94%</b><span>평균</span></div><div><b>100%</b><span>최고</span></div></div>
+            <div class="rm-bar"><i style="width:62%;background:#22c55e"></i><i style="width:26%;background:#2979ff"></i><i style="width:12%;background:#ef4444"></i></div>
+            <div class="rm-weak"><span>discord</span><span>buttress</span><span>desecrate</span></div>
+        </div>
+    </div>
+</section>
+
+<!-- ============ 소식 ============ -->
+<section id="news" class="sec">
+    <div class="sec-inner wide">
+        <div class="news-head">
+            <div>
+                <p class="kicker reveal">소식</p>
+                <h2 class="sec-title left lines"><span><i>새로워진 것들.</i></span></h2>
+            </div>
+            <div class="news-nav reveal">
+                <button class="nb" id="news-prev" aria-label="이전">‹</button>
+                <button class="nb" id="news-next" aria-label="다음">›</button>
+            </div>
+        </div>
+
+        <div class="news-rail" id="news-rail">
+            <article class="news-card reveal">
+                <div class="nc-visual v6">
+                    <div class="nc-mini">🧭 <b>플래너</b><span>망각곡선 계획</span></div>
                 </div>
+                <div class="nc-body">
+                    <span class="nc-tag new">신규</span>
+                    <h3>AI 학습 플래너가 열렸습니다</h3>
+                    <p>목표와 날짜만 정하면 AI가 매일 외울 단어와 복습 시점을 캘린더로 짜 줍니다. 망각곡선에 맞춘 분산 학습이니까요.</p>
+                    <time>2026.07.28</time>
+                </div>
+            </article>
 
-                <label class="block-label">문항 간격</label>
-                <input type="range" id="pdf-spacing" min="4" max="18" value="8" class="crop-slider" oninput="pdfSet('spacing', +this.value)">
+            <article class="news-card reveal">
+                <div class="nc-visual v7">
+                    <div class="nc-mini">🎮 <b>학습</b><span>8가지 모드</span></div>
+                </div>
+                <div class="nc-body">
+                    <span class="nc-tag new">신규</span>
+                    <h3>학습 모드가 8가지로</h3>
+                    <p>가리고 외우기·받아쓰기·스피드 퀴즈·스펠링·예문 채우기까지. 단어를 여러 각도로 손에 익히세요.</p>
+                    <time>2026.07.22</time>
+                </div>
+            </article>
 
-                <label class="pdf-check"><input type="checkbox" id="pdf-answerkey" checked onchange="pdfSet('answer_key', this.checked)"> 정답·해설지 별도 PDF로 함께 저장</label>
-                <label class="pdf-check"><input type="checkbox" id="pdf-header" checked onchange="pdfSet('header_fields', this.checked)"> 이름/날짜/점수 칸</label>
-                <label class="pdf-check"><input type="checkbox" id="pdf-school" checked onchange="pdfSet('show_school', this.checked)"> 상단 브랜드 문구</label>
+            <article class="news-card reveal">
+                <div class="nc-visual v1">
+                    <div class="nc-mini">✍️ <b>예문</b><span>AI 첨삭</span></div>
+                </div>
+                <div class="nc-body">
+                    <span class="nc-tag">업데이트</span>
+                    <h3>AI 예문 첨삭이 도착했습니다</h3>
+                    <p>플래시카드를 뒤집고 예문을 쓰면, AI가 용법이 맞는지 짚어주고 자연스러운 문장으로 고쳐줍니다.</p>
+                    <time>2026.07.15</time>
+                </div>
+            </article>
 
-                <button class="btn-accent" style="width:100%; margin-top:14px" onclick="downloadCustomPdf()">📄 PDF 다운로드</button>
+            <article class="news-card reveal">
+                <div class="nc-visual v2">
+                    <div class="nc-mini">🏫 <b>학원</b><span>반 개설</span></div>
+                </div>
+                <div class="nc-body">
+                    <span class="nc-tag">업데이트</span>
+                    <h3>학원·교사 모드 오픈</h3>
+                    <p>반을 만들고 참여 코드를 공유하세요. 시험지를 배정하면 학생별 성적이 대시보드에 자동으로 쌓입니다.</p>
+                    <time>2026.07.12</time>
+                </div>
+            </article>
+
+            <article class="news-card reveal">
+                <div class="nc-visual v3">
+                    <div class="nc-mini">🇨🇳 <b>中文</b><span>병음 지원</span></div>
+                </div>
+                <div class="nc-body">
+                    <span class="nc-tag">언어</span>
+                    <h3>중국어 단어장을 지원합니다</h3>
+                    <p>한자와 병음(pinyin)까지 추출해 단어 목록과 플래시카드에 함께 보여줍니다. 문제도 언어에 맞춰 출제됩니다.</p>
+                    <time>2026.07.08</time>
+                </div>
+            </article>
+
+            <article class="news-card reveal">
+                <div class="nc-visual v4">
+                    <div class="nc-mini">👪 <b>리포트</b><span>링크 공유</span></div>
+                </div>
+                <div class="nc-body">
+                    <span class="nc-tag">업데이트</span>
+                    <h3>학부모 리포트 공유 링크</h3>
+                    <p>읽기전용 링크 하나로 진도·점수 추이·취약 단어를 공유하세요. 로그인 없이 열립니다.</p>
+                    <time>2026.07.02</time>
+                </div>
+            </article>
+
+            <article class="news-card reveal">
+                <div class="nc-visual v5">
+                    <div class="nc-mini">🎴 <b>학습</b><span>카드 · 게임</span></div>
+                </div>
+                <div class="nc-body">
+                    <span class="nc-tag">신규</span>
+                    <h3>플래시카드와 단어 맞추기 게임</h3>
+                    <p>시험 말고도 외울 방법이 필요하니까요. 뒤집고, 짝 맞추고, 잊을 때쯤 다시 만납니다.</p>
+                    <time>2026.06.24</time>
+                </div>
+            </article>
+        </div>
+    </div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section id="pricing" class="sec sec-gray">
+    <div class="sec-inner">
+        <p class="kicker reveal">요금제</p>
+        <h2 class="sec-title lines"><span><i>쓰는 만큼.</i></span><span><i>가르치는 만큼.</i></span></h2>
+        <p class="sec-sub reveal">무료로 시작해서, 필요할 때만 올리세요.<br>숨은 비용 없이 — 쓰는 만큼, 가르치는 만큼만.</p>
+
+        <div class="price-grid">
+            <div class="price reveal">
+                <div class="p-name">기본</div>
+                <div class="p-cost">무료</div>
+                <ul>
+                    <li>단어장 3개 · 시험지 10개</li>
+                    <li>1회 추출 10p · 문제 15문항</li>
+                    <li>AI 크레딧 <b>50</b>/월</li>
+                    <li>기본 학습 모드 · SRS 복습</li>
+                    <li>반 참여</li>
+                </ul>
+                <a href="/app/" class="p-btn ghost">시작하기</a>
             </div>
-            <!-- 미리보기 -->
-            <div class="pdf-preview-wrap">
-                <div class="pdf-preview-label">미리보기</div>
-                <div id="pdf-preview" class="pdf-preview"></div>
+            <div class="price feat reveal">
+                <div class="p-badge">가장 인기</div>
+                <div class="p-name">프리미엄</div>
+                <div class="p-cost">₩4,900<i>/월</i></div>
+                <ul>
+                    <li>단어장 · 시험지 <b>무제한</b></li>
+                    <li>1회 추출 50p · 문제 50문항</li>
+                    <li>AI 크레딧 <b>600</b>/월</li>
+                    <li><b>AI 예문 첨삭 · 학습 플래너</b></li>
+                    <li>프리미엄 학습 모드 · 학부모 리포트</li>
+                    <li>워터마크 없는 PDF</li>
+                </ul>
+                <a href="/app/" class="p-btn">프리미엄 시작</a>
+            </div>
+            <div class="price teach reveal">
+                <div class="p-name">선생님 Basic</div>
+                <div class="p-cost">₩12,900<i>/월</i></div>
+                <ul>
+                    <li>프리미엄의 모든 기능</li>
+                    <li>1회 추출 100p · 문제 100문항</li>
+                    <li>AI 크레딧 <b>2,500</b>/월</li>
+                    <li><b>반 개설 5개 · 학생 40명</b></li>
+                    <li>반 성적 대시보드</li>
+                </ul>
+                <a href="/app/" class="p-btn teach">선생님으로 시작</a>
+            </div>
+            <div class="price teach reveal">
+                <div class="p-badge pro">최상위</div>
+                <div class="p-name">선생님 Pro</div>
+                <div class="p-cost">₩29,900<i>/월</i></div>
+                <ul>
+                    <li>선생님 Basic의 모든 기능</li>
+                    <li>1회 추출 200p · 문제 100문항</li>
+                    <li>AI 크레딧 <b>6,000</b>/월</li>
+                    <li><b>반 20개 · 학생 60명</b></li>
+                    <li>우선 지원</li>
+                </ul>
+                <a href="/app/" class="p-btn teach">Pro로 시작</a>
             </div>
         </div>
-    </div>
-</div>
 
-<!-- 토스트 알림 -->
-
-<div id="toast-container" class="toast-container"></div>
-
-<!-- 온디바이스 LLM 로딩 오버레이 -->
-<div id="llm-loading" class="modal-overlay hidden">
-    <div class="modal-card" style="max-width:420px; text-align:center">
-        <div id="llm-loading-progress">
-            <div class="llm-spinner"></div>
-            <h2 style="margin:10px 0 2px">🧠 온디바이스 AI 준비 중</h2>
-            <p class="sub" style="margin:0">온디바이스 LLM을 불러오는 중입니다</p>
-            <div class="progress-track" style="margin:16px 0 6px"><div id="llm-loading-bar" class="progress-bar"></div></div>
-            <div class="llm-loading-status">
-                <span id="llm-loading-msg">시작하는 중…</span><span id="llm-loading-pct">0%</span>
+        <div class="addons reveal">
+            <span class="ad-t">필요할 때 더하기</span>
+            <div class="ad-list">
+                <div class="ad"><b>AI 크레딧 팩</b><span>+500 크레딧</span><i>₩4,900</i></div>
+                <div class="ad"><b>반 슬롯</b><span>반 +1개</span><i>₩3,900</i></div>
+                <div class="ad"><b>학생 슬롯</b><span>학생 +10명</span><i>₩3,900</i></div>
             </div>
-            <p class="muted" style="margin-top:14px; font-size:12px; line-height:1.5">
-                처음 한 번만 모델(약 1.4GB)을 내려받아요. 다음부터는 훨씬 빨라져요.<br>답안은 이 기기 안에서 채점돼요.
-            </p>
-            <button class="btn-mini" style="margin-top:12px" onclick="cancelLLMLoad()">취소 (서버 채점으로 진행)</button>
-        </div>
-        <div id="llm-loading-error" class="hidden">
-            <div style="font-size:40px">⚠️</div>
-            <h2 style="margin:10px 0 6px">온디바이스 AI 로딩 실패</h2>
-            <p class="sub" id="llm-error-msg" style="margin:0 0 16px; line-height:1.5"></p>
-            <button class="btn-primary" style="width:auto" onclick="document.getElementById('llm-loading').classList.add('hidden')">닫기</button>
+            <p class="ad-note">AI 크레딧은 시험지 생성·예문 첨삭·학습 플래너 등 AI 작업에 사용됩니다.</p>
         </div>
     </div>
-</div>
+</section>
 
-<!-- 시험 범위 설정 모달 -->
-<div id="range-modal" class="modal-overlay hidden" onclick="closeRangeModal(event)">
-    <div class="modal-card" onclick="event.stopPropagation()" style="max-width:560px">
-        <div class="modal-head"><h2>🎯 시험 범위 설정</h2><button class="btn-close" onclick="closeRangeModal()">×</button></div>
-        <p class="muted" style="margin:0 0 12px">범위를 입력해 단어를 선택하고, 체크박스로 중간중간 제외할 수 있어요.</p>
-        <div class="range-controls">
-            <input type="number" id="range-from" placeholder="시작" min="1" style="width:80px">
-            <span>~</span>
-            <input type="number" id="range-to" placeholder="끝" min="1" style="width:80px">
-            <button type="button" class="btn-mini" onclick="applyRange()">범위 적용</button>
-            <button type="button" class="btn-mini" onclick="selectAllRange(true)">전체 선택</button>
-            <button type="button" class="btn-mini" onclick="selectAllRange(false)">전체 해제</button>
-        </div>
-        <div class="range-exclude">
-            <input type="text" id="range-exclude-input" placeholder="제외할 번호 (예: 5, 12, 20-22)">
-            <button type="button" class="btn-mini" onclick="applyExclude()">제외하기</button>
-        </div>
-        <div id="range-words" class="range-word-list"></div>
-        <div class="range-foot">
-            <span>선택됨: <b id="range-sel-count">0</b> / <span id="range-total">0</span>개</span>
-            <button type="button" class="btn-accent" onclick="confirmRange()">이 범위로 설정</button>
-        </div>
+<!-- ============ CTA ============ -->
+<section class="final">
+    <div class="final-inner">
+        <h2 class="lines"><span><i>오늘 찍은 단어장이</i></span><span><i>내일의 시험이 됩니다.</i></span></h2>
+        <a href="/app/" class="btn-primary lg reveal">무료로 시작하기</a>
     </div>
-</div>
+</section>
 
-<!-- 채점 신고 플로팅 버튼 (리포트 화면에서만 표시) -->
-<button id="report-fab" class="report-fab hidden" onclick="openReportPicker()">🚩 채점 신고</button>
-<div id="report-picker-modal" class="modal-overlay hidden" onclick="closeReportPicker(event)">
-    <div class="modal-card" onclick="event.stopPropagation()" style="max-width:520px">
-        <div class="modal-head"><h2>🚩 이 채점이 이상해요</h2><button class="btn-close" onclick="closeReportPicker()">×</button></div>
-        <p class="muted" style="margin:0 0 10px">채점이 잘못됐다고 생각하는 문항을 고르고, 이유를 적어주세요.</p>
-        <div id="report-picker-list" class="report-picker-list"></div>
-        <textarea id="report-comment" class="settings-input" rows="3" placeholder="추가 설명 (선택) — 왜 이상한지 적어주세요" style="margin-top:12px; resize:vertical; width:100%"></textarea>
-        <button class="btn-accent" style="margin-top:10px" onclick="submitReport()">신고하기</button>
+<footer>
+    <div class="foot-inner">
+        <img src="assets/logo.png" alt="VoQuiz" class="foot-logo">
+        <p>찍고, 외우고, 시험까지 — 단어 공부의 모든 것.</p>
+        <small><span>© 2026 VoQuiz. AI 단어 학습 플랫폼.</span> · <a href="#" id="admin-trigger" class="admin-trigger">관리자</a></small>
     </div>
-</div>
+</footer>
 
-<script type="module" src="ai_grade.js?v=10"></script> 
-<!-- ai.grade.js라는 자바스크립트 파일을 불러와 실행하라고 명령. ?v=1은 쿼리 문자열. 캐시본을 재사용해 수정이 반영되지 않는 것을 방지 -->
-<!-- module은 파일을 ES 모듈로 취급하라느 것. 그리하여 import/export 사용, scrict mode, 스코프 격리, HTML 다 읽은 뒤 실행 킴 -->
-<script src="app.js?v=45"></script>
+<script src="script.js"></script>
+<script src="admin.js?v=11"></script>
 </body>
 </html>

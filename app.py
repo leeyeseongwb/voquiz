@@ -691,14 +691,14 @@ def create_share(user=Depends(current_user)):
         token = secrets.token_urlsafe(12)
         db.execute("INSERT INTO report_shares (token, user_id, created_at) VALUES (?, ?, ?)",
                    (token, user["id"], _now()), commit=True)
-    return {"token": token, "path": f"/report.html?t={token}"}
+    return {"token": token, "path": f"/app/report.html?t={token}"}
 
 
 @app.get("/api/report/share")
 def get_share(user=Depends(current_user)):
     row = db.query_one("SELECT token FROM report_shares WHERE user_id=?", (user["id"],))
     return {"token": row["token"] if row else None,
-            "path": f"/report.html?t={row['token']}" if row else None}
+            "path": f"/app/report.html?t={row['token']}" if row else None}
 
 
 @app.delete("/api/report/share")
