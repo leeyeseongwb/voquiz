@@ -146,30 +146,47 @@ def send_verification_email(email: str, code: str):
     SMTP 설정이 있으면 실제 메일 전송, 없으면 콘솔 출력(개발 모드).
     실 서비스용 SMTP 를 붙이려면 .env 에 SMTP_HOST/PORT/USER/PASSWORD 설정.
     """
-    host = os.getenv("SMTP_HOST")
     subject = "[VoQuiz] 이메일 인증 코드"
     body = f"VoQuiz 회원가입 인증 코드입니다.\n\n인증 코드: {code}\n\n{CODE_TTL_MIN}분 이내에 입력해주세요."
+    html = _verification_email_html(code)
+    from_name = os.getenv("SMTP_FROM_NAME", "VoQuiz")
+    from_addr = os.getenv("SMTP_FROM") or os.getenv("SMTP_USER", "")
+    from_header = f"{from_name} <{from_addr}>" if (from_name and from_addr) else (from_addr or from_name)
 
-    if not host:
-        # 개발 모드: 콘솔에 출력
-        print(f"\n{'='*50}\n[DEV EMAIL] to={email}\n{subject}\n{body}\n{'='*50}\n")
+    # 1) Resend HTTP API 우선 — HTTPS(443)라 호스팅사의 SMTP 포트 차단을 피함 (가장 안정적)
+    resend_key = os.getenv("RESEND_API_KEY", "")
+    if resend_key:
+        import requests
+        r = requests.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
+            json={"from": from_header, "to": [email], "subject": subject, "html": html, "text": body},
+            timeout=15,
+        )
+        if r.status_code >= 400:
+            raise RuntimeError(f"Resend API 오류 {r.status_code}: {r.text[:300]}")
         return
 
+    # 2) SMTP 폴백 (포트 465=SSL, 그 외=STARTTLS)
+    host = os.getenv("SMTP_HOST")
+    if not host:
+        print(f"\n{'='*50}\n[DEV EMAIL] to={email}\n{subject}\n{body}\n{'='*50}\n")
+        return
     port = int(os.getenv("SMTP_PORT", "587"))
     user = os.getenv("SMTP_USER", "")
     password = os.getenv("SMTP_PASSWORD", "")
-    from_addr = os.getenv("SMTP_FROM", user)            # 실제 발송 주소(봉투 발신자)
-    from_name = os.getenv("SMTP_FROM_NAME", "VoQuiz")   # 받는 사람에게 보이는 이름
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"] = f"{from_name} <{from_addr}>" if from_name else from_addr
+    msg["From"] = from_header
     msg["To"] = email
-    msg.attach(MIMEText(body, "plain", "utf-8"))                       # 텍스트 대체본
-    msg.attach(MIMEText(_verification_email_html(code), "html", "utf-8"))  # 브랜드 HTML
+    msg.attach(MIMEText(body, "plain", "utf-8"))
+    msg.attach(MIMEText(html, "html", "utf-8"))
 
-    with smtplib.SMTP(host, port) as server:
-        server.starttls()
+    server = smtplib.SMTP_SSL(host, port, timeout=20) if port == 465 else smtplib.SMTP(host, port, timeout=20)
+    with server:
+        if port != 465:
+            server.starttls()
         if user:
             server.login(user, password)
         server.sendmail(from_addr, [email], msg.as_string())
