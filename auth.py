@@ -127,18 +127,19 @@ def send_verification_email(email: str, code: str):
     port = int(os.getenv("SMTP_PORT", "587"))
     user = os.getenv("SMTP_USER", "")
     password = os.getenv("SMTP_PASSWORD", "")
-    sender = os.getenv("SMTP_FROM", user)
+    from_addr = os.getenv("SMTP_FROM", user)            # 실제 발송 주소(봉투 발신자)
+    from_name = os.getenv("SMTP_FROM_NAME", "VoQuiz")   # 받는 사람에게 보이는 이름
 
     msg = MIMEText(body)
     msg["Subject"] = subject
-    msg["From"] = sender
+    msg["From"] = f"{from_name} <{from_addr}>" if from_name else from_addr
     msg["To"] = email
 
     with smtplib.SMTP(host, port) as server:
         server.starttls()
         if user:
             server.login(user, password)
-        server.sendmail(sender, [email], msg.as_string())
+        server.sendmail(from_addr, [email], msg.as_string())
 
 
 # ------------------------------------------------------------------
