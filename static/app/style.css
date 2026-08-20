@@ -1715,6 +1715,10 @@ input[type="radio"]:focus-visible { box-shadow: 0 0 0 3px rgba(41,121,255,.2); }
 /* 크게 보기 */
 .chat-pop.big { width: min(760px, calc(100vw - 40px)); height: min(84vh, 860px); }
 
+/* 인증 화면: 메인(랜딩)으로 돌아가기 */
+.auth-home { position: absolute; top: 18px; left: 20px; z-index: 5; color: var(--muted); font-size: .9rem; font-weight: 600; text-decoration: none; }
+.auth-home:hover { color: var(--text); }
+
 /* ===== 관리자 전용: 일반 기능 숨기고 통계(파일럿 데이터)만 ===== */
 body.admin-only .side-nav .side-link:not(#nav-admin) { display: none; }
 body.admin-only .side-bottom { display: none; }          /* 설정 숨김 (로그아웃은 프로필 메뉴에 유지) */
