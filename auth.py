@@ -21,6 +21,7 @@ import secrets
 import smtplib
 from datetime import datetime, timedelta, timezone
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 import database as db
 
@@ -110,6 +111,35 @@ def check_verification_code(email: str, code: str) -> bool:
     return True
 
 
+def _verification_email_html(code: str) -> str:
+    """인증 코드 이메일 HTML (이메일 클라이언트 호환 위해 table + inline 스타일)."""
+    return f"""\
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f6fb;font-family:-apple-system,'Apple SD Gothic Neo','Malgun Gothic',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6fb;padding:32px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(30,50,120,.08);">
+        <tr><td style="background-color:#2979ff;background-image:linear-gradient(135deg,#4f5bd5,#2979ff);padding:24px 32px;">
+          <span style="color:#ffffff;font-size:22px;font-weight:800;letter-spacing:-.5px;">VoQuiz</span>
+        </td></tr>
+        <tr><td style="padding:34px 32px 8px;">
+          <h1 style="margin:0 0 8px;font-size:20px;color:#1a1a2e;font-weight:700;">이메일 인증 코드</h1>
+          <p style="margin:0 0 24px;font-size:14px;color:#6b7280;line-height:1.6;">VoQuiz 회원가입을 위해 아래 6자리 코드를 입력해주세요.</p>
+          <div style="background:#f4f6fb;border:1px solid #e5e9f2;border-radius:12px;padding:22px;text-align:center;">
+            <span style="font-size:34px;font-weight:800;letter-spacing:10px;color:#2979ff;font-family:'Courier New',monospace;">{code}</span>
+          </div>
+          <p style="margin:20px 0 0;font-size:13px;color:#9aa0ac;line-height:1.6;">이 코드는 <b style="color:#6b7280;">{CODE_TTL_MIN}분</b> 후 만료돼요.<br>본인이 요청하지 않았다면 이 메일을 무시하세요.</p>
+        </td></tr>
+        <tr><td style="padding:22px 32px 28px;border-top:1px solid #f0f2f7;">
+          <p style="margin:0;font-size:12px;color:#b0b4bd;">© 2026 VoQuiz · 온디바이스 AI 단어 학습</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>"""
+
+
 def send_verification_email(email: str, code: str):
     """
     SMTP 설정이 있으면 실제 메일 전송, 없으면 콘솔 출력(개발 모드).
@@ -130,10 +160,12 @@ def send_verification_email(email: str, code: str):
     from_addr = os.getenv("SMTP_FROM", user)            # 실제 발송 주소(봉투 발신자)
     from_name = os.getenv("SMTP_FROM_NAME", "VoQuiz")   # 받는 사람에게 보이는 이름
 
-    msg = MIMEText(body)
+    msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = f"{from_name} <{from_addr}>" if from_name else from_addr
     msg["To"] = email
+    msg.attach(MIMEText(body, "plain", "utf-8"))                       # 텍스트 대체본
+    msg.attach(MIMEText(_verification_email_html(code), "html", "utf-8"))  # 브랜드 HTML
 
     with smtplib.SMTP(host, port) as server:
         server.starttls()
