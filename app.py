@@ -852,22 +852,9 @@ def admin_pilot(user=Depends(current_user)):
 # ==================================================================
 @app.post("/api/report/pdf")
 def download_progress_pdf(user=Depends(current_user)):
-    """전체 학습 진도 리포트 PDF."""
+    """전체 학습 진도 리포트 PDF — 웹 리포트(report.html)와 동일한 데이터·디자인."""
     uid = user["id"]
-    full = auth.get_user_full(uid)
-    agg = db.query_one("SELECT COUNT(*) c, COALESCE(ROUND(AVG(score)),0) avg, COALESCE(MAX(score),0) best "
-                       "FROM attempts WHERE user_id=?", (uid,))
-    week_ago = (datetime.now(timezone.utc) - _timedelta(days=7)).isoformat()
-    week = db.query_one("SELECT COUNT(*) c FROM attempts WHERE user_id=? AND created_at>=?", (uid, week_ago))["c"]
-    exams = db.query_all(
-        "SELECT e.name, MAX(a.score) best, ROUND(AVG(a.score)) avg, COUNT(a.id) attempts "
-        "FROM exams e JOIN attempts a ON a.exam_id=e.id AND a.user_id=? WHERE e.user_id=? "
-        "GROUP BY e.id ORDER BY MAX(a.created_at) DESC LIMIT 12", (uid, uid))
-    data = {
-        "name": full.get("nickname") or full["email"].split("@")[0],
-        "avg": agg["avg"], "best": agg["best"], "attempts": agg["c"], "week": week,
-        "exams": exams,
-    }
+    data = _build_report(uid)
     out = os.path.join(UPLOAD_DIR, f"progress_{uid}.pdf")
     pdf_export.create_progress_pdf(data, out)
     return FileResponse(out, filename="학습리포트.pdf", media_type="application/pdf")

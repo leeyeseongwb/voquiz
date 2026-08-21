@@ -298,59 +298,110 @@ def create_report_pdf(data, filename):
 
 
 def create_progress_pdf(data, filename):
-    """전체 학습 진도 리포트 PDF (공유/다운로드용).
-    data = {name, avg, best, attempts, week, mastery{mastered,learning,weak}, exams[], weak_words[]}"""
+    """웹 리포트(report.html, 라이트 모드)처럼 디자인한 학습 진도 리포트 PDF.
+    data = _build_report() 형태:
+      {nickname, generated_at, totals{wordbooks,words,exams,attempts}, avg_score, best_score,
+       trend[{score,created_at}], recent[{score,correct,total,created_at,exam_name}]}"""
+    from datetime import datetime as _dt
+    BLUE = Color(0x29 / 255, 0x79 / 255, 0xFF / 255)
+    INK = Color(0.11, 0.11, 0.14)
+    MUTED = Color(0.51, 0.53, 0.58)
+    CARD = Color(0.96, 0.97, 0.99)
+    LINE = Color(0.90, 0.91, 0.94)
+    GREEN = Color(0.13, 0.70, 0.33)
+    REDC = Color(0.94, 0.27, 0.27)
+
     c = canvas.Canvas(filename, pagesize=A4)
     w, h = A4
     title, body = _pick_fonts("round")
-    ML = 46
+    ML = 44
+    CW = w - 2 * ML
 
-    c.setFont(title, 22)
-    c.setFillColor(black)
-    c.drawCentredString(w / 2, h - 52, "학습 진도 리포트")
-    c.setFont(body, 11)
-    c.setFillColor(grey)
-    c.drawCentredString(w / 2, h - 72, f"{data.get('name','학습자')} · VoQuiz")
-    c.setFillColor(black)
-    c.line(ML, h - 88, w - ML, h - 88)
+    def fmt_date(iso):
+        try:
+            return _dt.fromisoformat(str(iso).replace("Z", "+00:00")).strftime("%Y.%m.%d %H:%M")
+        except Exception:
+            return str(iso or "")[:16]
 
-    # KPI 요약
-    y = h - 120
-    kpis = [("평균 점수", f"{data.get('avg',0)}%"), ("최고 점수", f"{data.get('best',0)}%"),
-            ("총 응시", f"{data.get('attempts',0)}회"), ("이번 주", f"{data.get('week',0)}회")]
-    colw = (w - 2 * ML) / len(kpis)
-    for i, (label, val) in enumerate(kpis):
-        cx = ML + colw * i + colw / 2
-        c.setFont(title, 20); c.setFillColor(black); c.drawCentredString(cx, y, val)
-        c.setFont(body, 9); c.setFillColor(grey); c.drawCentredString(cx, y - 16, label)
-    y -= 50
+    # ---- 헤더 (상단 파란 바 + 제목) ----
+    c.setFillColor(BLUE); c.rect(0, h - 6, w, 6, stroke=0, fill=1)
+    y = h - 52
+    c.setFillColor(INK); c.setFont(title, 21)
+    c.drawString(ML, y, f"{data.get('nickname', '학습자')}님의 학습 리포트")
+    c.setFont(body, 10); c.setFillColor(MUTED)
+    c.drawString(ML, y - 18, f"생성일 {fmt_date(data.get('generated_at', ''))}  ·  VoQuiz")
+    y -= 48
 
-    exams = data.get("exams", [])
-    if exams:
-        c.setFont(title, 13); c.setFillColor(black); c.drawString(ML, y, "시험지별 성적")
-        y -= 20
-        c.setFont(body, 10)
-        for e in exams[:12]:
-            if y < 80:
-                c.showPage(); y = h - 60
-            c.setFillColor(black)
-            c.drawString(ML, y, str(e.get("name", ""))[:40])
-            c.drawRightString(w - ML, y, f"최고 {e.get('best',0)}% · 평균 {e.get('avg',0)}% · {e.get('attempts',0)}회")
-            y -= 16
-        y -= 14
+    # ---- KPI 카드 6개 (2행 x 3열) ----
+    t = data.get("totals", {})
+    kpis = [
+        ("단어장", str(t.get("wordbooks", 0)), False),
+        ("총 단어", str(t.get("words", 0)), False),
+        ("시험지", str(t.get("exams", 0)), False),
+        ("응시 횟수", str(t.get("attempts", 0)), False),
+        ("평균 점수", f"{data.get('avg_score', 0)}%", True),
+        ("최고 점수", f"{data.get('best_score', 0)}%", True),
+    ]
+    cols, gap, cardh = 3, 12, 58
+    cardw = (CW - gap * (cols - 1)) / cols
+    for i, (label, val, accent) in enumerate(kpis):
+        r, ci = divmod(i, cols)
+        cx = ML + (cardw + gap) * ci
+        cy = y - (cardh + gap) * r - cardh
+        c.setFillColor(CARD); c.setStrokeColor(LINE); c.setLineWidth(1)
+        c.roundRect(cx, cy, cardw, cardh, 8, stroke=1, fill=1)
+        c.setFillColor(BLUE if accent else INK); c.setFont(title, 19)
+        c.drawCentredString(cx + cardw / 2, cy + 27, val)
+        c.setFillColor(MUTED); c.setFont(body, 9)
+        c.drawCentredString(cx + cardw / 2, cy + 12, label)
+    y -= (cardh + gap) * 2 + 18
 
-    weak = data.get("weak_words", [])
-    if weak:
-        if y < 120:
+    # ---- 점수 추이 (라인 차트) ----
+    trend = data.get("trend", [])
+    c.setFillColor(INK); c.setFont(title, 13); c.drawString(ML, y, "점수 추이"); y -= 10
+    chart_h = 132
+    bx, by = ML, y - chart_h
+    c.setFillColor(CARD); c.setStrokeColor(LINE); c.setLineWidth(1)
+    c.roundRect(bx, by, CW, chart_h, 8, stroke=1, fill=1)
+    if trend:
+        pad = 18
+        ix, iy, iw, ih = bx + pad + 12, by + pad, CW - 2 * pad - 12, chart_h - 2 * pad
+        n = len(trend)
+        c.setFont(body, 7)
+        for v in (0, 50, 100):
+            gy = iy + ih * v / 100
+            c.setStrokeColor(LINE); c.setLineWidth(0.7); c.line(ix, gy, ix + iw, gy)
+            c.setFillColor(MUTED); c.drawRightString(ix - 5, gy - 2.5, str(v))
+        pts = [(ix + (iw * i / (n - 1) if n > 1 else iw / 2), iy + ih * (tr["score"] / 100))
+               for i, tr in enumerate(trend)]
+        c.setStrokeColor(BLUE); c.setLineWidth(2)
+        for i in range(1, len(pts)):
+            c.line(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1])
+        c.setFillColor(BLUE)
+        for px, py in pts:
+            c.circle(px, py, 2.3, stroke=0, fill=1)
+    else:
+        c.setFillColor(MUTED); c.setFont(body, 10)
+        c.drawCentredString(bx + CW / 2, by + chart_h / 2, "아직 응시 기록이 없어요.")
+    y = by - 24
+
+    # ---- 최근 응시 ----
+    c.setFillColor(INK); c.setFont(title, 13); c.drawString(ML, y, "최근 응시"); y -= 22
+    recent = data.get("recent", [])
+    if not recent:
+        c.setFillColor(MUTED); c.setFont(body, 10); c.drawString(ML, y, "최근 응시한 시험이 없어요.")
+    for r in recent[:8]:
+        if y < 66:
             c.showPage(); y = h - 60
-        c.setFont(title, 13); c.setFillColor(black); c.drawString(ML, y, "취약 단어")
-        y -= 20
-        c.setFont(body, 10)
-        for wd in weak[:20]:
-            if y < 70:
-                c.showPage(); y = h - 60
-            c.setFillColor(black); c.drawString(ML, y, str(wd.get("word", "")))
-            c.setFillColor(grey); c.drawString(ML + 150, y, str(wd.get("meaning", ""))[:34])
-            c.setFillColor(red); c.drawRightString(w - ML, y, f"{wd.get('accuracy',0)}%")
-            y -= 15
+        score = r.get("score", 0)
+        sc = GREEN if score >= 80 else (BLUE if score >= 50 else REDC)
+        c.setFillColor(INK); c.setFont(body, 11)
+        c.drawString(ML, y, str(r.get("exam_name", ""))[:36])
+        c.setFillColor(MUTED); c.setFont(body, 8)
+        c.drawString(ML, y - 13, f"{fmt_date(r.get('created_at', ''))}  ·  {r.get('correct', 0)}/{r.get('total', 0)}")
+        c.setFillColor(sc); c.setFont(title, 14)
+        c.drawRightString(w - ML, y - 4, f"{score}%")
+        c.setStrokeColor(LINE); c.setLineWidth(0.7); c.line(ML, y - 22, w - ML, y - 22)
+        y -= 32
+
     c.save()
