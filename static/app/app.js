@@ -189,10 +189,12 @@ function hideAuthError() { document.getElementById("auth-error").classList.add("
 async function doSignup() {
     const email = document.getElementById("signup-email").value.trim();
     const password = document.getElementById("signup-password").value;
+    const password2 = document.getElementById("signup-password2").value;
     const key = document.getElementById("signup-key").value.trim();
     if (!email || !password) return showAuthError("이메일과 비밀번호를 입력하세요.");
-    if (!key) return showAuthError("가입 키를 입력하세요. (베타)");
     if (!checkPwRules()) return showAuthError("비밀번호 요구사항을 모두 충족해야 합니다. (6~15자, 영문+숫자+특수문자)");
+    if (password !== password2) return showAuthError("비밀번호가 일치하지 않습니다.");
+    if (!key) return showAuthError("가입 키를 입력하세요. (베타)");
     try {
         const r = await api("/api/signup", { method: "POST", body: { email, password, key } });
         document.getElementById("verify-target").textContent = email;
@@ -1574,6 +1576,12 @@ function stopTimer() { if (takeState.timer) { clearInterval(takeState.timer); ta
 function fmtTime(sec) {
     const m = Math.floor(sec / 60), s = sec % 60;
     return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function askSubmitExam() {   // 버튼 클릭 시 한 번 더 확인 (타이머 자동제출은 확인 없이 submitExam 직접 호출)
+    const answered = takeState?.answers ? takeState.answers.filter(a => a !== undefined && a !== "").length : 0;
+    const total = takeState?.exam?.questions?.length || 0;
+    if (confirm(`시험을 제출할까요?\n답한 문항: ${answered}/${total}\n제출 후에는 답을 수정할 수 없어요.`)) submitExam();
 }
 
 async function submitExam() { // 자동으로 전역이 됨.

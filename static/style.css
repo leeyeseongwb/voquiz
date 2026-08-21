@@ -585,7 +585,7 @@ footer{background:var(--gray);padding:52px 22px;text-align:center}
 .ne-prev-empty{color:#c7c7cc;font-size:.82rem}
 
 /* 소식 상세 — 상단 메뉴바(52px) 아래를 꽉 채우는 전체 화면 패널 */
-#news-detail{top:52px;left:0;right:0;bottom:0;padding:0;display:none;background:#fff;
+#news-detail{top:0;left:0;right:0;bottom:0;padding:0;display:none;background:#fff;z-index:400;
     overflow-y:auto;overscroll-behavior:contain;backdrop-filter:none;-webkit-backdrop-filter:none}
 #news-detail.show{display:block}
 .nd-box{background:#fff;width:100%;min-height:100%;position:relative;animation:ndSlide .4s var(--ease)}
