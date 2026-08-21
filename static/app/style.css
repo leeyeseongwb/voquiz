@@ -1760,6 +1760,20 @@ body.admin-only #chat-fab, body.admin-only #chat-pop { display: none !important;
     .take-side { flex-direction: row; }
     .ts-card { flex: 1; }
 }
+
+/* ===== 시험지 문제 미리보기 ===== */
+.preview-body { max-height: 70vh; overflow-y: auto; padding: 4px 2px; }
+.pv-item { padding: 16px 2px; border-bottom: 1px solid var(--border); }
+.pv-item:last-child { border-bottom: none; }
+.pv-q { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 10px; line-height: 1.5; }
+.pv-num { color: var(--primary); font-weight: 800; margin-right: 4px; }
+.pv-opts { display: flex; flex-direction: column; gap: 6px; }
+.pv-opt { font-size: .92rem; color: var(--muted); padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; }
+.pv-opt.correct { color: var(--text); border-color: var(--primary); background: rgba(41,121,255,.08); font-weight: 600; }
+.pv-opt.correct b { color: var(--primary); }
+.pv-lb { font-weight: 700; margin-right: 6px; }
+.pv-ans { font-size: .95rem; color: var(--text); background: var(--card-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; }
+.pv-ans b { color: var(--primary); }
 .chat-pop .chat-messages { flex: 1; min-height: 0; max-height: none; padding: 14px; }
 .chat-pop .chat-input-row { margin: 0; padding: 12px 14px; border-top: 1px solid var(--border); }
 .chat-pop .chat-input-row .btn-primary { width: auto; padding: 0 16px; font-size: 1.1rem; }

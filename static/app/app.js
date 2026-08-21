@@ -966,6 +966,7 @@ async function loadExams() {
                     ${ex.attempt_count ? `<span class="badge green">최고 ${ex.best_score}%</span>` : ``}
                 </div>
                 <div class="ic-actions">
+                    <button class="btn-mini" onclick="event.stopPropagation(); previewExam(${ex.id})">👁 문제 보기</button>
                     <button class="btn-mini" onclick="event.stopPropagation(); quickExamPdf(${ex.id})">📄 PDF</button>
                     ${ex.attempt_count ? `<button class="btn-mini" onclick="event.stopPropagation(); openExamResults(${ex.id})">📊 결과 (${ex.attempt_count})</button>` : ``}
                 </div>
@@ -976,6 +977,31 @@ async function loadExams() {
 // 시험지 카드에서 PDF 커스텀 모달 열기 (풀지 않아도)
 async function quickExamPdf(id) {
     await openPdfModal(id);
+}
+
+// 시험지 문제 미리보기 (정답 표시)
+async function previewExam(id) {
+    try {
+        const { exam } = await api(`/api/exams/${id}`);
+        const labels = ["A", "B", "C", "D", "E"];
+        document.getElementById("preview-title").textContent = `${exam.name} · 문제 미리보기 (${exam.questions.length}문항)`;
+        document.getElementById("preview-body").innerHTML = exam.questions.map((q, i) => {
+            const head = `<div class="pv-q"><span class="pv-num">${i + 1}.</span> ${esc(q.question)}</div>`;
+            if (q.type === "written") {
+                return `<div class="pv-item">${head}<div class="pv-ans">정답: <b>${esc(q.answer)}</b></div></div>`;
+            }
+            const opts = (q.options || []).map((o, idx) => {
+                const correct = o === q.answer;
+                return `<div class="pv-opt${correct ? " correct" : ""}"><span class="pv-lb">${labels[idx]}</span> ${esc(o)}${correct ? " <b>✓ 정답</b>" : ""}</div>`;
+            }).join("");
+            return `<div class="pv-item">${head}<div class="pv-opts">${opts}</div></div>`;
+        }).join("");
+        document.getElementById("preview-modal").classList.remove("hidden");
+    } catch (e) { toast(e.message, "error"); }
+}
+function closePreview(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById("preview-modal").classList.add("hidden");
 }
 
 // 시험지 카드에서 지난 결과 바로 보기 (가장 최근 응시 리포트)
