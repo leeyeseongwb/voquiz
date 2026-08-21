@@ -1724,6 +1724,42 @@ body.admin-only .side-nav .side-link:not(#nav-admin) { display: none; }
 body.admin-only .side-bottom { display: none; }          /* 설정 숨김 (로그아웃은 프로필 메뉴에 유지) */
 body.admin-only .side-logo { pointer-events: none; }      /* 로고 클릭으로 대시보드 못 가게 */
 body.admin-only #chat-fab, body.admin-only #chat-pop { display: none !important; }
+
+/* ===== 시험 응시 3단 레이아웃 (좌 번호네비 · 중앙 문제 · 우 타이머) ===== */
+.take-layout { display: grid; grid-template-columns: 200px minmax(0,1fr) 220px; gap: 20px; align-items: start; }
+.take-nav, .take-side { position: sticky; top: 14px; }
+.take-nav { background: var(--card-2); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+.tn-title { font-size: .82rem; color: var(--muted); font-weight: 700; margin-bottom: 10px; }
+.take-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.tg-cell { aspect-ratio: 1; border: 1px solid var(--border); background: var(--card); border-radius: 8px; font-size: .82rem; font-weight: 600; color: var(--text); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: .12s; }
+.tg-cell:hover { border-color: var(--primary); }
+.tg-cell.answered { background: var(--primary); color: #fff; border-color: var(--primary); }
+.tg-cell.current { outline: 2px solid var(--primary); outline-offset: 1px; font-weight: 800; }
+.tn-legend { display: flex; gap: 14px; margin-top: 12px; font-size: .72rem; color: var(--muted); }
+.tn-legend .tl-a::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; background: var(--primary); margin-right: 5px; vertical-align: -1px; }
+.tn-legend .tl-c::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; border: 2px solid var(--primary); margin-right: 5px; vertical-align: -1px; }
+.take-center { min-width: 0; }
+.take-qhead { font-size: .85rem; color: var(--muted); font-weight: 600; margin-bottom: 14px; }
+.take-move { display: flex; gap: 10px; justify-content: space-between; align-items: center; margin-top: 24px; }
+.take-move .btn-primary, .take-move .btn-secondary { width: auto; }
+.take-move .btn-secondary:disabled { opacity: .4; cursor: default; }
+.take-side { display: flex; flex-direction: column; gap: 14px; }
+.ts-card { background: var(--card-2); border: 1px solid var(--border); border-radius: 14px; padding: 16px; text-align: center; }
+.ts-lbl { font-size: .78rem; color: var(--muted); font-weight: 700; margin-bottom: 8px; }
+.ts-timer .ts-val { font-size: 1.9rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--primary); }
+#timer.warning .ts-val { color: #ef4444; }
+.ts-num { font-size: 1.35rem; font-weight: 800; margin-bottom: 10px; }
+.ts-num b { color: var(--primary); }
+@media (max-width: 900px) {
+    .take-layout { grid-template-columns: 1fr; }
+    .take-side { order: 0; }
+    .take-center { order: 1; }
+    .take-nav { order: 2; }
+    .take-nav, .take-side { position: static; }
+    .take-grid { grid-template-columns: repeat(8, 1fr); }
+    .take-side { flex-direction: row; }
+    .ts-card { flex: 1; }
+}
 .chat-pop .chat-messages { flex: 1; min-height: 0; max-height: none; padding: 14px; }
 .chat-pop .chat-input-row { margin: 0; padding: 12px 14px; border-top: 1px solid var(--border); }
 .chat-pop .chat-input-row .btn-primary { width: auto; padding: 0 16px; font-size: 1.1rem; }

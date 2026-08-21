@@ -1510,30 +1510,63 @@ function beginExam() {
     document.getElementById("take-setup").classList.add("hidden");
     document.getElementById("take-questions").classList.remove("hidden");
     document.getElementById("timer").classList.remove("hidden");
+    document.getElementById("timer-lbl").textContent = takeState.limit ? "⏱ 남은 시간" : "⏱ 경과 시간";
     startTimer();
 }
 
 function renderQuestions() {
+    // 좌측 답안지: 문제 번호 그리드
+    const grid = document.getElementById("take-grid");
+    grid.innerHTML = takeState.exam.questions.map((q, i) =>
+        `<button type="button" class="tg-cell" id="tg-${i}" onclick="gotoQuestion(${i})">${i + 1}</button>`).join("");
+    takeState.current = 0;
+    renderCurrent();
+}
+
+// 중앙: 현재 문제 하나만 렌더 (저장된 답 복원 + 그리드 하이라이트)
+function renderCurrent() {
+    const i = takeState.current;
+    const q = takeState.exam.questions[i];
+    const saved = takeState.answers[i];
     const box = document.getElementById("questions-box");
-    box.innerHTML = takeState.exam.questions.map((q, i) => {
-        if (q.type === "written") {
-            return `<div class="q-item q-written" id="q-item-${i}">
-                <div class="q-text"><span class="q-num">${i + 1}.</span> ${esc(q.question)}</div>
-                <input type="text" placeholder="뜻을 입력하세요" oninput="setAnswer(${i}, this.value)">
-            </div>`;
-        }
+    if (q.type === "written") {
+        box.innerHTML = `<div class="q-item q-written">
+            <div class="q-text"><span class="q-num">${i + 1}.</span> ${esc(q.question)}</div>
+            <input type="text" placeholder="뜻을 입력하세요" value="${esc(saved || "")}" oninput="setAnswer(${i}, this.value)">
+        </div>`;
+    } else {
         const labels = ["A", "B", "C", "D", "E"];
-        const opts = q.options.map((o, idx) => `
-            <label class="q-opt" onclick="chooseOpt(this)">
-                <input type="radio" name="q${i}" value="${esc(o)}" onchange="setAnswer(${i}, this.value)">
+        const opts = q.options.map((o, idx) => {
+            const chosen = saved === o;
+            return `<label class="q-opt${chosen ? " chosen" : ""}" onclick="chooseOpt(this)">
+                <input type="radio" name="q${i}" value="${esc(o)}"${chosen ? " checked" : ""} onchange="setAnswer(${i}, this.value)">
                 <span class="opt-label">${labels[idx]}.</span> ${esc(o)}
-            </label>`).join("");
-        return `<div class="q-item" id="q-item-${i}">
+            </label>`;
+        }).join("");
+        box.innerHTML = `<div class="q-item">
             <div class="q-text"><span class="q-num">${i + 1}.</span> ${esc(q.question)}</div>
             <div class="q-options">${opts}</div>
         </div>`;
-    }).join("");
+    }
+    // 그리드 하이라이트(답함/현재)
+    takeState.exam.questions.forEach((_, k) => {
+        const cell = document.getElementById("tg-" + k);
+        if (!cell) return;
+        const a = takeState.answers[k];
+        cell.classList.toggle("answered", !!(a && String(a).trim()));
+        cell.classList.toggle("current", k === i);
+    });
+    // 이동 버튼 · 헤더
+    const last = takeState.exam.questions.length - 1;
+    document.getElementById("tm-prev").disabled = i === 0;
+    document.getElementById("tm-next").disabled = i === last;
+    const qn = document.getElementById("take-qname");
+    if (qn) qn.textContent = `문제 ${i + 1} / ${last + 1}`;
 }
+
+function gotoQuestion(i) { takeState.current = i; renderCurrent(); }
+function nextQuestion() { if (takeState.current < takeState.exam.questions.length - 1) { takeState.current++; renderCurrent(); } }
+function prevQuestion() { if (takeState.current > 0) { takeState.current--; renderCurrent(); } }
 
 function chooseOpt(label) {
     const group = label.closest(".q-options");
@@ -1543,7 +1576,8 @@ function chooseOpt(label) {
 
 function setAnswer(idx, val) {
     takeState.answers[idx] = val;
-    document.getElementById("q-item-" + idx)?.classList.toggle("answered", !!(val && String(val).trim()));
+    const cell = document.getElementById("tg-" + idx);
+    if (cell) cell.classList.toggle("answered", !!(val && String(val).trim()));
     updateTakeProgress();
 }
 
