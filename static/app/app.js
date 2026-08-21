@@ -2024,6 +2024,9 @@ function toggleChat() {
     pop.classList.toggle("hidden");
     if (fab) fab.style.display = opening ? "none" : "";   // 열려 있으면 탭 숨김
     if (opening) {
+        if (!isOnDeviceReady()) {   // 온디바이스 미준비(=서버/Gemini 모드)면 팝업으로 안내
+            alert("💡 AI 튜터는 기기 안의 '온디바이스 AI'로 작동해요.\n\n지금은 서버(Gemini) 모드예요. 상단 배너나 설정에서 온디바이스 AI를 먼저 다운로드하면 튜터가 답변할 수 있어요.");
+        }
         if (!chatHistory.length) {
             chatHistory = [];
             renderChat();
