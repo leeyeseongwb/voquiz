@@ -986,18 +986,25 @@ async function previewExam(id) {
         const labels = ["A", "B", "C", "D", "E"];
         document.getElementById("preview-title").textContent = `${exam.name} · 문제 미리보기 (${exam.questions.length}문항)`;
         document.getElementById("preview-body").innerHTML = exam.questions.map((q, i) => {
-            const head = `<div class="pv-q"><span class="pv-num">${i + 1}.</span> ${esc(q.question)}</div>`;
+            const head = `<div class="qpv-q"><span class="qpv-num">${i + 1}.</span> ${esc(q.question)}</div>`;
             if (q.type === "written") {
-                return `<div class="pv-item">${head}<div class="pv-ans">정답: <b>${esc(q.answer)}</b></div></div>`;
+                return `<div class="qpv-item">${head}<div class="qpv-ans">정답: <b>${esc(q.answer)}</b></div></div>`;
             }
             const opts = (q.options || []).map((o, idx) => {
                 const correct = o === q.answer;
-                return `<div class="pv-opt${correct ? " correct" : ""}"><span class="pv-lb">${labels[idx]}</span> ${esc(o)}${correct ? " <b>✓ 정답</b>" : ""}</div>`;
+                return `<div class="qpv-opt${correct ? " correct" : ""}"><span class="qpv-lb">${labels[idx]}</span> ${esc(o)}${correct ? " <b>✓ 정답</b>" : ""}</div>`;
             }).join("");
-            return `<div class="pv-item">${head}<div class="pv-opts">${opts}</div></div>`;
+            return `<div class="qpv-item">${head}<div class="qpv-opts">${opts}</div></div>`;
         }).join("");
+        const pb = document.getElementById("preview-body");
+        pb.classList.remove("hide-answers"); pb.scrollTop = 0;
+        document.getElementById("pv-toggle").textContent = "정답 숨기기";
         document.getElementById("preview-modal").classList.remove("hidden");
     } catch (e) { toast(e.message, "error"); }
+}
+function togglePreviewAnswers() {
+    const hidden = document.getElementById("preview-body").classList.toggle("hide-answers");
+    document.getElementById("pv-toggle").textContent = hidden ? "정답 보기" : "정답 숨기기";
 }
 function closePreview(e) {
     if (e && e.target !== e.currentTarget) return;
@@ -1639,8 +1646,8 @@ function fmtTime(sec) {
 }
 
 function askSubmitExam() {   // 버튼 클릭 시 한 번 더 확인 (타이머 자동제출은 확인 없이 submitExam 직접 호출)
-    const answered = takeState?.answers ? takeState.answers.filter(a => a !== undefined && a !== "").length : 0;
     const total = takeState?.exam?.questions?.length || 0;
+    const answered = Object.values(takeState?.answers || {}).filter(a => a !== undefined && String(a).trim() !== "").length;
     if (confirm(`시험을 제출할까요?\n답한 문항: ${answered}/${total}\n제출 후에는 답을 수정할 수 없어요.`)) submitExam();
 }
 

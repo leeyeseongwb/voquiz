@@ -1726,7 +1726,10 @@ body.admin-only .side-logo { pointer-events: none; }      /* 로고 클릭으로
 body.admin-only #chat-fab, body.admin-only #chat-pop { display: none !important; }
 
 /* ===== 시험 응시 3단 레이아웃 (좌 번호네비 · 중앙 문제 · 우 타이머) ===== */
-.take-layout { display: grid; grid-template-columns: 200px minmax(0,1fr) 220px; gap: 20px; align-items: start; }
+.take-layout { display: grid; grid-template-columns: 210px minmax(0,1fr) 240px; gap: 24px; align-items: start; }
+.main-area:has(#view-take:not(.hidden)) { max-width: 1260px; }   /* 시험 화면은 더 넓게 */
+.take-center .q-text { font-size: 1.12rem; line-height: 1.65; margin-bottom: 4px; }
+.take-center .q-opt { padding: 13px 16px; font-size: 1.02rem; }
 .take-nav, .take-side { position: sticky; top: 14px; }
 .take-nav { background: var(--card-2); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
 .tn-title { font-size: .82rem; color: var(--muted); font-weight: 700; margin-bottom: 10px; }
@@ -1761,19 +1764,26 @@ body.admin-only #chat-fab, body.admin-only #chat-pop { display: none !important;
     .ts-card { flex: 1; }
 }
 
-/* ===== 시험지 문제 미리보기 ===== */
-.preview-body { max-height: 70vh; overflow-y: auto; padding: 4px 2px; }
-.pv-item { padding: 16px 2px; border-bottom: 1px solid var(--border); }
-.pv-item:last-child { border-bottom: none; }
-.pv-q { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 10px; line-height: 1.5; }
-.pv-num { color: var(--primary); font-weight: 800; margin-right: 4px; }
-.pv-opts { display: flex; flex-direction: column; gap: 6px; }
-.pv-opt { font-size: .92rem; color: var(--muted); padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; }
-.pv-opt.correct { color: var(--text); border-color: var(--primary); background: rgba(41,121,255,.08); font-weight: 600; }
-.pv-opt.correct b { color: var(--primary); }
-.pv-lb { font-weight: 700; margin-right: 6px; }
-.pv-ans { font-size: .95rem; color: var(--text); background: var(--card-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; }
-.pv-ans b { color: var(--primary); }
+/* ===== 시험지 문제 미리보기 (PDF 미리보기 .pv-* 와 충돌 피하려 qpv-* 사용) ===== */
+#preview-modal .modal-card.qpv-card { max-width: 860px; width: 94vw; }
+.preview-body { max-height: 78vh; overflow-y: auto; padding: 4px 2px; }
+.qpv-item { padding: 16px 2px; border-bottom: 1px solid var(--border); }
+.qpv-item:last-child { border-bottom: none; }
+.qpv-q { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 10px; line-height: 1.5; }
+.qpv-num { color: var(--primary); font-weight: 800; margin-right: 4px; }
+.qpv-opts { display: flex; flex-direction: column; gap: 6px; }
+.qpv-opt { font-size: .92rem; color: var(--muted); padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; }
+.qpv-opt.correct { color: var(--text); border-color: var(--primary); background: rgba(41,121,255,.08); font-weight: 600; }
+.qpv-opt.correct b { color: var(--primary); }
+.qpv-lb { font-weight: 700; margin-right: 6px; }
+.qpv-ans { font-size: .95rem; color: var(--text); background: var(--card-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; }
+.qpv-ans b { color: var(--primary); }
+.pv-head-btns { display: flex; gap: 8px; align-items: center; }
+/* 정답 숨기기 */
+.preview-body.hide-answers .qpv-opt.correct { border-color: var(--border); background: transparent; color: var(--muted); font-weight: 400; }
+.preview-body.hide-answers .qpv-opt.correct b { display: none; }
+.preview-body.hide-answers .qpv-ans { font-size: 0; }
+.preview-body.hide-answers .qpv-ans::after { content: "주관식 — 정답 숨김"; font-size: .9rem; color: var(--muted); }
 .chat-pop .chat-messages { flex: 1; min-height: 0; max-height: none; padding: 14px; }
 .chat-pop .chat-input-row { margin: 0; padding: 12px 14px; border-top: 1px solid var(--border); }
 .chat-pop .chat-input-row .btn-primary { width: auto; padding: 0 16px; font-size: 1.1rem; }

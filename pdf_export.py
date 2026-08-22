@@ -36,7 +36,12 @@ def _register_fonts():
         pdfmetrics.registerFont(TTFont("NanumR", os.path.join(FONT_DIR, "NanumSquareRoundR.ttf")))
         reg["round"] = ("NanumB", "NanumR")
     except Exception:
-        reg["round"] = ("Helvetica-Bold", "Helvetica")
+        # TTF 로드 실패 시에도 한글이 나오도록 Helvetica 대신 한국어 CID 폰트로 폴백
+        try:
+            pdfmetrics.registerFont(UnicodeCIDFont("HYGothic-Medium"))
+            reg["round"] = ("HYGothic-Medium", "HYGothic-Medium")
+        except Exception:
+            reg["round"] = ("Helvetica-Bold", "Helvetica")
     # 명조 / 고딕 (reportlab 내장 CJK CID 폰트) — 폰트명 정확히!
     for style, name in (("myeongjo", "HYSMyeongJo-Medium"), ("gothic", "HYGothic-Medium")):
         try:
