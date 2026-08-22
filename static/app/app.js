@@ -50,8 +50,18 @@ function goDashboard() {
     navTo("dashboard");
 }
 
+// 시험 응시 중이면 이탈 확인 (제출 후에는 take-questions가 숨겨져 확인 안 뜸)
+async function _confirmLeaveExam() {
+    const view = document.getElementById("view-take");
+    const q = document.getElementById("take-questions");
+    const taking = view && !view.classList.contains("hidden") && q && !q.classList.contains("hidden");
+    if (!taking) return true;
+    return appConfirm("지금까지 입력한 답은 저장되지 않습니다.", { title: "시험을 중단하고 나갈까요?", okText: "나가기" });
+}
+
 // 사이드바 내비게이션: dashboard(개요) | wordbooks | exams
-function navTo(section) {
+async function navTo(section) {
+    if (!(await _confirmLeaveExam())) return;   // 시험 중 이탈 확인
     stopTimer();
     document.querySelectorAll(".side-link").forEach(l => l.classList.remove("active"));
     document.querySelector(`.side-link[data-nav="${section}"]`)?.classList.add("active");
@@ -1645,10 +1655,11 @@ function fmtTime(sec) {
     return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-function askSubmitExam() {   // 버튼 클릭 시 한 번 더 확인 (타이머 자동제출은 확인 없이 submitExam 직접 호출)
+async function askSubmitExam() {   // 버튼 클릭 시 한 번 더 확인 (타이머 자동제출은 확인 없이 submitExam 직접 호출)
     const total = takeState?.exam?.questions?.length || 0;
     const answered = Object.values(takeState?.answers || {}).filter(a => a !== undefined && String(a).trim() !== "").length;
-    if (confirm(`시험을 제출할까요?\n답한 문항: ${answered}/${total}\n제출 후에는 답을 수정할 수 없어요.`)) submitExam();
+    if (await appConfirm(`답한 문항은 ${answered} / ${total}개입니다.\n제출하면 답을 수정할 수 없습니다.`,
+        { title: "시험을 제출할까요?", okText: "제출하기" })) submitExam();
 }
 
 async function submitExam() { // 자동으로 전역이 됨.
@@ -2092,7 +2103,8 @@ function toggleChat() {
     if (fab) fab.style.display = opening ? "none" : "";   // 열려 있으면 탭 숨김
     if (opening) {
         if (!isOnDeviceReady()) {   // 온디바이스 미준비(=서버/Gemini 모드)면 팝업으로 안내
-            alert("💡 AI 튜터는 기기 안의 '온디바이스 AI'로 작동해요.\n\n지금은 서버(Gemini) 모드예요. 상단 배너나 설정에서 온디바이스 AI를 먼저 다운로드하면 튜터가 답변할 수 있어요.");
+            appAlert("AI 튜터는 기기 안의 온디바이스 AI로 작동합니다.\n지금은 서버(Gemini) 모드예요. 상단 배너나 설정에서 온디바이스 AI를 먼저 내려받으면 튜터가 답변할 수 있습니다.",
+                { title: "온디바이스 AI가 필요해요" });
         }
         if (!chatHistory.length) {
             chatHistory = [];
@@ -2431,6 +2443,37 @@ function checkPwRules() {
 // UI 헬퍼 — 토스트 & 입력 모달
 // ============================================================
 // 에러/안내용 팝업 토스트 (기존 alert 대체)
+// ===== 앱 내 확인/알림 팝업 (브라우저 기본 alert/confirm 대체) =====
+let _appModalCb = null;
+function _appModalResolve(v) {
+    document.getElementById("app-modal").classList.add("hidden");
+    const cb = _appModalCb; _appModalCb = null;
+    if (cb) cb(v);
+}
+function appConfirm(message, { title = "", okText = "확인", cancelText = "취소" } = {}) {
+    return new Promise(resolve => {
+        _appModalCb = resolve;
+        const t = document.getElementById("app-modal-title");
+        t.textContent = title; t.style.display = title ? "" : "none";
+        document.getElementById("app-modal-msg").textContent = message;
+        document.getElementById("app-modal-ok").textContent = okText;
+        const cancel = document.getElementById("app-modal-cancel");
+        cancel.textContent = cancelText; cancel.style.display = "";
+        document.getElementById("app-modal").classList.remove("hidden");
+    });
+}
+function appAlert(message, { title = "", okText = "확인" } = {}) {
+    return new Promise(resolve => {
+        _appModalCb = resolve;
+        const t = document.getElementById("app-modal-title");
+        t.textContent = title; t.style.display = title ? "" : "none";
+        document.getElementById("app-modal-msg").textContent = message;
+        document.getElementById("app-modal-ok").textContent = okText;
+        document.getElementById("app-modal-cancel").style.display = "none";
+        document.getElementById("app-modal").classList.remove("hidden");
+    });
+}
+
 function toastErr(msg) { toast(msg, "error"); }
 
 // ---- 확인 팝업 모달 (기존 confirm 대체) ----
