@@ -1742,7 +1742,7 @@ async function renderReport(result, exam) {
     document.getElementById("rep-title").innerHTML = `<span class="ico">${ICONS.chart}</span> ${esc(exam.name)} 결과`;
     // 언제 본 시험인지 (헤더 위, 작게) — 지난 응시는 그 날짜, 방금 푼 건 지금
     const when = fmtDate(result.created_at || new Date().toISOString());
-    document.getElementById("rep-date").textContent = `${when}에 응시한 결과예요`;
+    document.getElementById("rep-date").textContent = `${when} 응시`;
     const circle = document.getElementById("score-circle");
     circle.style.setProperty("--pct", result.score + "%");
     circle.setAttribute("data-score", result.score + "%");
