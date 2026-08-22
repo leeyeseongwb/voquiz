@@ -30,25 +30,30 @@ def _register_fonts():
     if _FONTS_READY:
         return _FONTS_READY
     reg = {}
-    # 둥근고딕 (프로젝트 TTF)
-    try:
-        pdfmetrics.registerFont(TTFont("NanumB", os.path.join(FONT_DIR, "NanumSquareRoundB.ttf")))
-        pdfmetrics.registerFont(TTFont("NanumR", os.path.join(FONT_DIR, "NanumSquareRoundR.ttf")))
-        reg["round"] = ("NanumB", "NanumR")
-    except Exception:
-        # TTF 로드 실패 시에도 한글이 나오도록 Helvetica 대신 한국어 CID 폰트로 폴백
+
+    def _ttf(style, bold_file, reg_file):
+        """스타일별 진짜 한국어 TTF 등록 (한국어·영어 모두 깔끔). 성공 시 True."""
         try:
-            pdfmetrics.registerFont(UnicodeCIDFont("HYGothic-Medium"))
-            reg["round"] = ("HYGothic-Medium", "HYGothic-Medium")
+            pdfmetrics.registerFont(TTFont(f"{style}B", os.path.join(FONT_DIR, bold_file)))
+            pdfmetrics.registerFont(TTFont(f"{style}R", os.path.join(FONT_DIR, reg_file)))
+            reg[style] = (f"{style}B", f"{style}R")
+            return True
         except Exception:
-            reg["round"] = ("Helvetica-Bold", "Helvetica")
-    # 명조 / 고딕 (reportlab 내장 CJK CID 폰트) — 폰트명 정확히!
-    for style, name in (("myeongjo", "HYSMyeongJo-Medium"), ("gothic", "HYGothic-Medium")):
-        try:
-            pdfmetrics.registerFont(UnicodeCIDFont(name))
-            reg[style] = (name, name)
-        except Exception:
-            reg[style] = reg["round"]
+            return False
+
+    # 세 서체 모두 나눔 TTF 사용 (CID 폰트는 영어 자간이 깨져서 안 씀)
+    _ttf("round", "NanumSquareRoundB.ttf", "NanumSquareRoundR.ttf")
+    _ttf("gothic", "NanumGothic-Bold.ttf", "NanumGothic-Regular.ttf")
+    _ttf("myeongjo", "NanumMyeongjo-Bold.ttf", "NanumMyeongjo-Regular.ttf")
+
+    # TTF 로드 실패 시에도 한글이 나오도록 한국어 CID 폰트로 폴백
+    for style, cid in (("round", "HYGothic-Medium"), ("gothic", "HYGothic-Medium"), ("myeongjo", "HYSMyeongJo-Medium")):
+        if style not in reg:
+            try:
+                pdfmetrics.registerFont(UnicodeCIDFont(cid))
+                reg[style] = (cid, cid)
+            except Exception:
+                reg[style] = ("Helvetica-Bold", "Helvetica")
     _FONTS_READY = reg
     return reg
 
