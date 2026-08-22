@@ -338,6 +338,19 @@ def grade(quiz, user_answers, report=None, ai_pregraded = None):
             graded_by = "server"
 
         for n, i in enumerate(written_idx):
+            ua = str(payload[n]["user_ans"]).strip()
+            # 미응답(빈 답)은 AI 판정과 무관하게 항상 오답 처리.
+            # (온디바이스 Gemma가 빈 답/무의미한 답도 정답으로 판정하는 문제 방지)
+            if not ua:
+                results[i] = {
+                    "idx": i + 1,
+                    "question": quiz[i]["question"],
+                    "user_ans": "(미응답)",
+                    "correct_ans": quiz[i].get("answer", ""),
+                    "correct": False,
+                    "feedback": "답을 입력하지 않았어요.",
+                }
+                continue
             r = ai_results[n] if n < len(ai_results) else {"correct": False, "feedback": ""}
             results[i] = {
                 "idx": i + 1,
@@ -362,15 +375,22 @@ def _grade_written(payload):
     if not over_limit:
         try:
             prompt = f"""
-You are a warm, encouraging English teacher grading a Korean student's vocabulary answers.
+You are a STRICT but fair English teacher grading a Korean student's vocabulary answers.
+Grade ONLY on whether 'user_ans' actually means the same as 'correct_ans'. Do not be lenient just to be kind.
 
 [Data] {json.dumps(payload, ensure_ascii=False)}
 
 [Rules]
-1. Compare 'user_ans' with 'correct_ans'.
-2. If the meaning is essentially correct (even if wording differs / synonyms), mark correct=true.
-3. If wrong or empty, correct=false.
-4. 'feedback' must be short and in Korean.
+1. Compare 'user_ans' with 'correct_ans' by MEANING.
+2. correct=true ONLY if 'user_ans' expresses essentially the same meaning as 'correct_ans' (synonyms or different wording are fine).
+3. correct=false if the answer is wrong, unrelated, empty, or random/nonsense characters (e.g. "asdf", "ㄴㅇㄹ", "..."). Never mark gibberish as correct.
+4. When unsure, mark correct=false.
+5. 'feedback' must be short and in Korean.
+
+[Examples]
+correct_ans "현실주의자", user_ans "현실적인 사람" -> correct=true
+correct_ans "현실주의자", user_ans "ㄴㅇㄹㅇ" -> correct=false
+correct_ans "현실주의자", user_ans "" -> correct=false
 
 [Output] JSON array, same length and order as input:
 [{{"correct": true, "feedback": "정확해요!"}}]

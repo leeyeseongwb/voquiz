@@ -101,17 +101,24 @@ async function getEngine(showError = false) { // showError=true면 실패 시 �
 
 function buildPrompt(payload) {
     /* 주관식 답안을 Gemini 로 채점. 실패 시 단순 문자열 비교로 폴백 */
-    const prompt = `You are a warm, encouraging English teacher grading a Korean student's vocabulary answers.
+    const prompt = `You are a STRICT but fair English teacher grading a Korean student's vocabulary answers.
+Grade ONLY on whether 'user_ans' actually means the same as 'correct_ans'. Do not be lenient just to be kind.
 [Data] ${JSON.stringify(payload)}
 
 [Rules]
-1. Compare 'user_ans' with 'correct_ans'.
-2. If the meaning is essentially correct (even if wording differs / synonyms), mark correct=true.
-3. If wrong or empty, correct=false.
-4. 'feedback' must be short and in Korean.
+1. Compare 'user_ans' with 'correct_ans' by MEANING.
+2. correct=true ONLY if 'user_ans' expresses essentially the same meaning as 'correct_ans' (synonyms or different wording are fine).
+3. correct=false if the answer is wrong, unrelated, empty, or random/nonsense characters (e.g. "asdf", "ㄴㅇㄹ", "..."). Never mark gibberish as correct.
+4. When unsure, mark correct=false.
+5. 'feedback' must be short and in Korean.
+
+[Examples]
+correct_ans "현실주의자", user_ans "현실적인 사람" -> correct=true
+correct_ans "현실주의자", user_ans "ㄴㅇㄹㅇ" -> correct=false
+correct_ans "현실주의자", user_ans "" -> correct=false
 
 [Output] JSON array, same length and order as input:
-[{"correct": true, "feedback": "정확해요!"}] 
+[{"correct": true, "feedback": "정확해요!"}]
 `;
     return prompt;
 }

@@ -1640,15 +1640,20 @@ input[type="radio"]:focus-visible { box-shadow: 0 0 0 3px rgba(41,121,255,.2); }
     box-shadow: 0 6px 20px rgba(108, 92, 231, .4); cursor: pointer;
 }
 .report-fab:hover { background: var(--accent-dark); transform: translateY(-1px); }
+.report-picker-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 10px; }
+.report-picker-top #report-all-btn { flex: 0 0 auto; white-space: nowrap; }
 .report-picker-list { display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow-y: auto; }
 .rp-item {
-    display: flex; flex-direction: column; gap: 2px; text-align: left;
+    display: flex; flex-direction: row; align-items: flex-start; gap: 10px; text-align: left;
     padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px;
     background: var(--card-2); color: var(--text); cursor: pointer;
 }
 .rp-item:hover { border-color: var(--accent); }
 .rp-item.wrong { border-left: 3px solid var(--red); }
 .rp-item.done { border-color: var(--green); cursor: default; }
+.rp-item.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--card-2)); }
+.rp-item .rp-check { font-size: 18px; line-height: 1.3; color: var(--accent); flex: 0 0 auto; }
+.rp-item .rp-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .rp-item .rp-q { font-weight: 600; }
 .rp-item .rp-you { font-size: 13px; color: var(--muted); }
 

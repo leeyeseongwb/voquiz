@@ -1761,35 +1761,62 @@ async function renderReport(result, exam) {
     showView("view-report");
 }
 
-// 파일럿: 우측 하단 플로팅 신고 버튼 → 문항 선택 → 신고
-let _reportSelIdx = null;
+// 파일럿: 우측 하단 플로팅 신고 버튼 → 문항 선택(다중) → 신고
+let _reportSel = new Set();
 function openReportPicker() {
     if (!reportState.attemptId) return toastErr("먼저 채점을 완료해주세요.");
-    _reportSelIdx = null;
+    _reportSel = new Set();
     const rs = reportState.results || [];
     document.getElementById("report-picker-list").innerHTML = rs.map(r => `
         <button class="rp-item ${r.correct ? "" : "wrong"}" onclick="selectReportItem(${r.idx}, this)">
-            <span class="rp-q">Q${r.idx}. ${esc(r.question)}</span>
-            <span class="rp-you">내 답: ${esc(r.user_ans)} ${r.correct ? "✅" : "❌"}</span>
+            <span class="rp-check">☐</span>
+            <span class="rp-body">
+                <span class="rp-q">Q${r.idx}. ${esc(r.question)}</span>
+                <span class="rp-you">내 답: ${esc(r.user_ans)} ${r.correct ? "✅" : "❌"}</span>
+            </span>
         </button>`).join("");
     document.getElementById("report-comment").value = "";
+    _updateReportUI();
     document.getElementById("report-picker-modal").classList.remove("hidden");
 }
 function selectReportItem(idx, el) {
-    _reportSelIdx = idx;
-    document.querySelectorAll("#report-picker-list .rp-item").forEach(b => b.classList.remove("sel"));
-    el.classList.add("sel");
+    if (_reportSel.has(idx)) _reportSel.delete(idx); else _reportSel.add(idx);
+    el.classList.toggle("sel", _reportSel.has(idx));
+    const chk = el.querySelector(".rp-check");
+    if (chk) chk.textContent = _reportSel.has(idx) ? "☑" : "☐";
+    _updateReportUI();
+}
+function toggleReportAll() {
+    const rs = reportState.results || [];
+    const all = _reportSel.size === rs.length && rs.length > 0;
+    _reportSel = all ? new Set() : new Set(rs.map(r => r.idx));  // 전체선택 ↔ 전체해제 토글
+    document.querySelectorAll("#report-picker-list .rp-item").forEach((b, i) => {
+        const on = !all && rs[i];
+        b.classList.toggle("sel", !!on);
+        const chk = b.querySelector(".rp-check");
+        if (chk) chk.textContent = on ? "☑" : "☐";
+    });
+    _updateReportUI();
+}
+function _updateReportUI() {
+    const rs = reportState.results || [];
+    const n = _reportSel.size;
+    const btn = document.getElementById("report-submit-btn");
+    if (btn) { btn.disabled = n === 0; btn.textContent = n > 0 ? `신고하기 (${n})` : "신고하기"; }
+    const allBtn = document.getElementById("report-all-btn");
+    if (allBtn) allBtn.textContent = (n === rs.length && rs.length > 0) ? "전체 해제" : "전체 선택";
 }
 function closeReportPicker(e) {
     if (e && e.target !== e.currentTarget) return;
     document.getElementById("report-picker-modal").classList.add("hidden");
 }
 async function submitReport() {
-    if (_reportSelIdx == null) return toastErr("먼저 문항을 선택해주세요.");
+    const idxs = [..._reportSel];
+    if (idxs.length === 0) return toastErr("먼저 문항을 선택해주세요.");
     const comment = document.getElementById("report-comment").value.trim();
     try {
-        await api(`/api/attempts/${reportState.attemptId}/report-grade`, { method: "POST", body: { idx: _reportSelIdx, comment } });
-        toast("신고 접수 — 감사합니다! 🙏", "success");
+        await api(`/api/attempts/${reportState.attemptId}/report-grade`, { method: "POST", body: { idxs, comment } });
+        toast(`신고 접수 (${idxs.length}문항) — 감사합니다! 🙏`, "success");
         closeReportPicker();
     } catch (e) { toastErr(e.message); }
 }

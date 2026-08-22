@@ -781,28 +781,40 @@ def get_attempt(attempt_id: int, user=Depends(current_user)):
 
 
 class GradeReportBody(BaseModel):
-    idx: int           # 신고할 문항 번호 (results의 idx, 1-based)
-    comment: str = ""  # 학생이 남긴 설명(선택)
+    idx: int | None = None          # (구버전 호환) 단일 문항 번호
+    idxs: list[int] | None = None   # 신고할 문항 번호들 (results의 idx, 1-based)
+    comment: str = ""               # 학생이 남긴 설명(선택)
 
 
 @app.post("/api/attempts/{attempt_id}/report-grade")
 def report_grade_issue(attempt_id: int, body: GradeReportBody, user=Depends(current_user)):
-    """학생이 '이 채점 이상해요'로 신고한 문항 기록 (파일럿: AI 오채점 실사례 수집)."""
+    """학생이 '이 채점 이상해요'로 신고한 문항 기록 (파일럿: AI 오채점 실사례 수집). 여러 문항 동시 신고 가능."""
     att = db.query_one("SELECT * FROM attempts WHERE id=? AND user_id=?", (attempt_id, user["id"]))
     if not att:
         raise HTTPException(404, "응시 기록을 찾을 수 없습니다.")
     results = json.loads(att["results"])
-    item = next((r for r in results if r.get("idx") == body.idx), None)
-    if not item:
+    # idxs(다중) 우선, 없으면 idx(단일) — 중복 제거하고 순서 유지
+    raw = list(body.idxs) if body.idxs else ([body.idx] if body.idx is not None else [])
+    idxs = list(dict.fromkeys(raw))
+    if not idxs:
+        raise HTTPException(400, "신고할 문항을 선택해주세요.")
+    comment = (body.comment or "").strip()[:1000]
+    saved = 0
+    for i in idxs:
+        item = next((r for r in results if r.get("idx") == i), None)
+        if not item:
+            continue
+        db.execute(
+            "INSERT INTO grade_reports (attempt_id, user_id, idx, word, student_ans, correct_ans, "
+            "model_correct, graded_by, comment, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (attempt_id, user["id"], i, item.get("question", ""), item.get("user_ans", ""),
+             item.get("correct_ans", ""), 1 if item.get("correct") else 0, att["graded_by"],
+             comment, _now()),
+            commit=True)
+        saved += 1
+    if not saved:
         raise HTTPException(400, "문항을 찾을 수 없습니다.")
-    db.execute(
-        "INSERT INTO grade_reports (attempt_id, user_id, idx, word, student_ans, correct_ans, "
-        "model_correct, graded_by, comment, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (attempt_id, user["id"], body.idx, item.get("question", ""), item.get("user_ans", ""),
-         item.get("correct_ans", ""), 1 if item.get("correct") else 0, att["graded_by"],
-         (body.comment or "").strip()[:1000], _now()),
-        commit=True)
-    return {"status": "success"}
+    return {"status": "success", "count": saved}
 
 
 class PilotDeviceBody(BaseModel):
