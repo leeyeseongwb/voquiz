@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VoQuiz — AI 단어 학습</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Gowun+Dodum&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=48">
+    <link rel="stylesheet" href="style.css?v=50">
     <link rel="icon" href="Favicon.png?v=4">
 </head>
 <body>
@@ -46,7 +46,7 @@
 
         <!-- 이메일 인증 -->
         <div id="pane-verify" class="auth-pane hidden">
-            <p class="verify-msg">📧 <span id="verify-target"></span> 로 보낸<br>인증 코드 6자리를 입력하세요.</p>
+            <p class="verify-msg"><span class="ico" data-icon="mail"></span> <span id="verify-target"></span> 로 보낸<br>인증 코드 6자리를 입력하세요.</p>
             <input type="text" id="verify-code" placeholder="인증 코드 6자리" maxlength="6" inputmode="numeric">
             <div id="dev-code-box" class="dev-code hidden"></div>
             <button class="btn-primary" onclick="doVerify()">인증하고 시작하기</button>
@@ -77,8 +77,8 @@
                 <span class="side-profile-caret">▾</span>
             </button>
             <div id="profile-menu" class="profile-menu hidden">
-                <button class="pm-item" onclick="openEditProfile()">✏️ 정보수정</button>
-                <button class="pm-logout" onclick="doLogout()">🚪 로그아웃</button>
+                <button class="pm-item" onclick="openEditProfile()"><span class="ico" data-icon="edit"></span> 정보수정</button>
+                <button class="pm-logout" onclick="doLogout()"><span class="ico" data-icon="logout"></span> 로그아웃</button>
             </div>
         </div>
 
@@ -87,7 +87,7 @@
             <button class="side-link active" data-nav="dashboard" onclick="navTo('dashboard')"><span class="side-ico" data-icon="home"></span> <span data-i18n="nav.dashboard">대시보드</span></button>
             <button class="side-link" data-nav="wordbooks" onclick="navTo('wordbooks')"><span class="side-ico" data-icon="book"></span> <span data-i18n="nav.wordbooks">내 단어장</span></button>
             <button class="side-link" data-nav="exams" onclick="navTo('exams')"><span class="side-ico" data-icon="doc"></span> <span data-i18n="nav.exams">내 시험지</span></button>
-            <button class="side-link hidden" id="nav-admin" onclick="openAdminView()"><span class="side-ico">🛠</span> <span>파일럿 데이터</span></button>
+            <button class="side-link hidden" id="nav-admin" onclick="openAdminView()"><span class="side-ico"><span class="ico" data-icon="tools"></span></span> <span>파일럿 데이터</span></button>
         </nav>
 
         <!-- 하단: 설정 -->
@@ -109,7 +109,7 @@
         <section id="view-dashboard">
             <!-- 온디바이스 AI 다운로드 배너 (아직 안 받았고 WebGPU 지원 시에만 노출) -->
             <div id="llm-banner" class="llm-banner hidden">
-                <span class="llm-banner-ico">🧠</span>
+                <span class="llm-banner-ico"><span class="ico" data-icon="chip"></span></span>
                 <div class="llm-banner-body">
                     <b>온디바이스 AI를 준비할까요?</b>
                     <span class="muted">주관식 채점을 이 기기 안에서 처리해요. 한 번만 내려받으면 돼요 (약 1.4GB).</span>
@@ -131,14 +131,14 @@
                             <p class="muted" style="margin:4px 0 0">읽기전용 진도 리포트 링크를 만들어 공유하세요.</p>
                         </div>
                         <div id="share-inactive">
-                            <button class="btn-accent" onclick="createShare()">🔗 공유 시작</button>
+                            <button class="btn-accent" onclick="createShare()"><span class="ico" data-icon="link"></span> 공유 시작</button>
                         </div>
                     </div>
                     <div id="share-active" class="hidden">
                         <div class="share-box">
                             <input type="text" id="share-url" readonly onclick="this.select()">
                             <button class="btn-primary" style="width:auto" onclick="copyShare()">복사</button>
-                            <button class="btn-secondary" onclick="downloadShareReport()">📄 리포트 다운로드</button>
+                            <button class="btn-secondary" onclick="downloadShareReport()"><span class="ico" data-icon="file"></span> 리포트 다운로드</button>
                             <button class="btn-ghost danger" onclick="revokeShare()">중단</button>
                         </div>
                     </div>
@@ -191,18 +191,18 @@
         <section id="view-upload" class="hidden">
             <button class="back-btn" onclick="goDashboard()">← 대시보드</button>
             <div class="card">
-                <h2>📂 단어장 업로드</h2>
+                <h2><span class="ico" data-icon="folder"></span> 단어장 업로드</h2>
                 <p class="sub">PDF 또는 사진(JPG/PNG)을 올리면 AI가 단어를 추출합니다.</p>
 
                 <div id="upload-drop" class="upload-area">
                     <input type="file" id="file-input" accept=".pdf,.jpg,.jpeg,.png" hidden>
-                    <div class="upload-icon">⬆️</div>
+                    <div class="upload-icon"><span class="ico" data-icon="upload"></span></div>
                     <p>클릭해서 파일 선택 (PDF / JPG / PNG)</p>
                 </div>
 
                 <div id="upload-info" class="hidden">
                     <div class="file-bar">
-                        <span>📄 <b id="up-filename"></b> <span id="up-pages" class="muted"></span></span>
+                        <span><span class="ico" data-icon="file"></span> <b id="up-filename"></b> <span id="up-pages" class="muted"></span></span>
                         <button class="btn-close" onclick="resetUpload()">×</button>
                     </div>
                     <div class="range-row">
@@ -234,7 +234,7 @@
                             <button class="btn-mini" onclick="selectAllPages()">전체</button>
                         </div>
                     </div>
-                    <button class="btn-primary" onclick="startExtract()">⚡ 단어 추출 시작</button>
+                    <button class="btn-primary" onclick="startExtract()"><span class="ico" data-icon="bolt"></span> 단어 추출 시작</button>
                 </div>
 
                 <!-- 진행바 -->
@@ -246,7 +246,7 @@
 
                 <!-- 추출 결과 & 저장 -->
                 <div id="extract-result" class="hidden">
-                    <h3>✅ <span id="er-count">0</span>개 단어 추출 완료</h3>
+                    <h3><span class="ico" data-icon="check"></span> <span id="er-count">0</span>개 단어 추출 완료</h3>
                     <p class="sub">저장할 단어만 체크로 남겨두세요. 체크 해제한 단어는 제외됩니다.</p>
                     <div class="er-toolbar">
                         <span>선택됨 <b id="er-selected">0</b> / <span id="er-total">0</span></span>
@@ -259,7 +259,7 @@
                     <div class="save-form">
                         <input type="text" id="wb-name" placeholder="단어장 이름 (예: 능률보카 Day 1~5)">
                         <input type="text" id="wb-desc" placeholder="설명 (선택)">
-                        <button class="btn-accent" onclick="saveWordbook()">💾 단어장 저장</button>
+                        <button class="btn-accent" onclick="saveWordbook()"><span class="ico" data-icon="save"></span> 단어장 저장</button>
                     </div>
                 </div>
             </div>
@@ -276,8 +276,8 @@
                     </div>
                     <div class="wbd-actions">
                         <button class="btn-accent" onclick="openStudySetup()">▶ 학습</button>
-                        <button class="btn-secondary" onclick="editCurrentWordbook()">✏️ 이름·설명 수정</button>
-                        <button class="btn-secondary hidden" id="wbd-source-btn" onclick="downloadWbSource()">📄 원본 다운로드</button>
+                        <button class="btn-secondary" onclick="editCurrentWordbook()"><span class="ico" data-icon="edit"></span> 이름·설명 수정</button>
+                        <button class="btn-secondary hidden" id="wbd-source-btn" onclick="downloadWbSource()"><span class="ico" data-icon="file"></span> 원본 다운로드</button>
                         <button class="btn-ghost danger" onclick="deleteWordbook()">삭제</button>
                     </div>
                 </div>
@@ -289,7 +289,7 @@
         <section id="view-exam-create" class="hidden">
             <button class="back-btn" onclick="navTo('exams')">← 내 시험지</button>
             <div class="card">
-                <h2>📝 시험지 만들기</h2>
+                <h2><span class="ico" data-icon="doc"></span> 시험지 만들기</h2>
                 <p class="sub">단어장을 하나 이상 골라 AI 시험지를 만들어보세요.</p>
 
                 <div class="config-block">
@@ -297,7 +297,7 @@
                     <div id="ec-wordbooks" class="ec-wb-grid"></div>
                     <div class="sel-count">선택된 단어: <b id="ec-word-count">0</b>개 <span id="ec-wb-note" class="muted"></span></div>
                     <div class="ec-range-row">
-                        <button type="button" class="btn-mini" onclick="openRangeModal()">🎯 범위 설정하기</button>
+                        <button type="button" class="btn-mini" onclick="openRangeModal()"><span class="ico" data-icon="target"></span> 범위 설정하기</button>
                         <span id="ec-range-note" class="muted">범위: 전체 단어</span>
                     </div>
                 </div>
@@ -306,7 +306,7 @@
                     <label class="block-label">2. 뜻 표기 언어</label>
                     <div class="range-mode">
                         <label><input type="radio" name="meaningLang" value="ko" checked> 🇰🇷 한국어 뜻</label>
-                        <label><input type="radio" name="meaningLang" value="en"> 🔤 영어 (영영풀이)</label>
+                        <label><input type="radio" name="meaningLang" value="en"> <span class="ico" data-icon="type"></span> 영어 (영영풀이)</label>
                     </div>
                     <p class="muted" style="margin:6px 0 0">‘단어→뜻’, ‘뜻→단어’, ‘주관식’ 형식에서 뜻을 영어로 출제합니다.</p>
                 </div>
@@ -333,7 +333,7 @@
                 </div>
 
 
-                <button class="btn-accent" onclick="startGenerate()">🤖 AI로 시험지 생성</button>
+                <button class="btn-accent" onclick="startGenerate()"><span class="ico" data-icon="sparkle"></span> AI로 시험지 생성</button>
 
                 <!-- 진행바 -->
                 <div id="gen-progress" class="progress-wrap hidden">
@@ -344,10 +344,10 @@
 
                 <!-- 생성 결과 저장 -->
                 <div id="gen-result" class="hidden">
-                    <h3>✅ <span id="gr-count">0</span>문항 생성 완료</h3>
+                    <h3><span class="ico" data-icon="check"></span> <span id="gr-count">0</span>문항 생성 완료</h3>
                     <div class="save-form">
                         <input type="text" id="exam-name" placeholder="시험지 이름 (예: Day1~5 TOEFL 모의고사)">
-                        <button class="btn-accent" onclick="saveExam()">💾 시험지 저장</button>
+                        <button class="btn-accent" onclick="saveExam()"><span class="ico" data-icon="save"></span> 시험지 저장</button>
                     </div>
                 </div>
             </div>
@@ -362,7 +362,7 @@
                         <h2 id="take-name"></h2>
                         <p class="sub" id="take-format"></p>
                     </div>
-                    <button class="btn-secondary" style="width:auto" onclick="editExamName(takeState.exam.id, takeState.exam.name)">✏️ 이름 수정</button>
+                    <button class="btn-secondary" style="width:auto" onclick="editExamName(takeState.exam.id, takeState.exam.name)"><span class="ico" data-icon="edit"></span> 이름 수정</button>
                 </div>
 
                 <!-- 시작 옵션 (시간 제한) -->
@@ -377,7 +377,7 @@
                     </div>
                     <div class="take-actions">
                         <button class="btn-primary" style="width:auto" onclick="beginExam()">시험 시작 ▶</button>
-                        <button class="btn-secondary" onclick="downloadSetupPdf()">📄 시험지 PDF 다운로드</button>
+                        <button class="btn-secondary" onclick="downloadSetupPdf()"><span class="ico" data-icon="file"></span> 시험지 PDF 다운로드</button>
                     </div>
                     <p class="muted" style="margin-top:8px">시험을 풀지 않아도 시험지 PDF를 받을 수 있어요.</p>
 
@@ -400,7 +400,7 @@
                             <div id="questions-box"></div>
                             <div class="take-move">
                                 <button class="btn-secondary" id="tm-prev" onclick="prevQuestion()">‹ 이전</button>
-                                <button class="btn-primary" onclick="askSubmitExam()">🏁 제출하고 채점</button>
+                                <button class="btn-primary" onclick="askSubmitExam()"><span class="ico" data-icon="check"></span> 제출하고 채점</button>
                                 <button class="btn-secondary" id="tm-next" onclick="nextQuestion()">다음 ›</button>
                             </div>
                         </div>
@@ -432,11 +432,11 @@
         <section id="view-report" class="hidden">
             <button class="back-btn" onclick="goDashboard()">← 대시보드</button>
             <div class="card center">
-                <h2 id="rep-title">📊 채점 결과</h2>
+                <h2 id="rep-title"><span class="ico" data-icon="chart"></span> 채점 결과</h2>
                 <div class="score-circle" id="score-circle">0%</div>
                 <p class="score-sub">정답 <b id="rep-correct">0</b> / <span id="rep-total">0</span></p>
                 <div class="rep-actions">
-                    <button class="btn-accent" onclick="downloadReportPdf()">📄 리포트 PDF 다운로드</button>
+                    <button class="btn-accent" onclick="downloadReportPdf()"><span class="ico" data-icon="file"></span> 리포트 PDF 다운로드</button>
                     <button class="btn-ghost" onclick="retakeExam()">↺ 다시 풀기</button>
                 </div>
                 <div id="rep-detail" class="rep-detail"></div>
@@ -451,7 +451,7 @@
             <div class="card center">
                 <div class="fc-top">
                     <span class="badge" id="fc-progress">1 / 1</span>
-                    <button class="btn-mini" onclick="fcShuffle()">🔀 섞기</button>
+                    <button class="btn-mini" onclick="fcShuffle()"><span class="ico" data-icon="shuffle"></span> 섞기</button>
                 </div>
                 <div class="flashcard" id="flashcard" onclick="flipCard()">
                     <div class="fc-inner" id="fc-inner">
@@ -469,7 +469,7 @@
                     <div class="fc-practice-head">✍️ 이 단어로 예문을 써보세요</div>
                     <textarea id="fc-sentence" class="fc-sentence" rows="2" placeholder="예: I will ___ this word in a sentence."></textarea>
                     <div id="fc-practice-actions">
-                        <button class="btn-accent" style="width:auto" onclick="checkSentence()">🤖 AI 첨삭받기</button>
+                        <button class="btn-accent" style="width:auto" onclick="checkSentence()"><span class="ico" data-icon="sparkle"></span> AI 첨삭받기</button>
                     </div>
                     <div id="fc-feedback" class="fc-feedback hidden"></div>
                 </div>
@@ -487,7 +487,7 @@
                 <div id="game-board" class="game-board"></div>
                 <div id="game-done" class="game-done hidden">
                     <h3 id="game-result">완료! 🎉</h3>
-                    <button class="btn-accent" style="width:auto" onclick="restartGame()">🔄 다시 하기</button>
+                    <button class="btn-accent" style="width:auto" onclick="restartGame()"><span class="ico" data-icon="repeat"></span> 다시 하기</button>
                 </div>
             </div>
         </section>
@@ -553,7 +553,7 @@
                 <div class="cph-title"><b>AI 튜터</b><span>이 기기 안에서 답해요</span></div>
                 <div class="chat-pop-btns">
                     <button class="cph-btn" onclick="toggleChatBig()" title="크게 보기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg></button>
-                    <button class="cph-btn" onclick="clearChat()" title="대화 지우기">🗑</button>
+                    <button class="cph-btn" onclick="clearChat()" title="대화 지우기"><span class="ico" data-icon="trash"></span></button>
                     <button class="cph-btn" onclick="toggleChat()" title="닫기">✕</button>
                 </div>
             </div>
@@ -569,7 +569,7 @@
         <section id="view-admin" class="hidden">
             <div class="card">
                 <div class="panel-head">
-                    <div><h2>🛠 파일럿 데이터</h2><p class="sub">채점 모드·온디바이스 성공률·오채점 신고</p></div>
+                    <div><h2><span class="ico" data-icon="tools"></span> 파일럿 데이터</h2><p class="sub">채점 모드·온디바이스 성공률·오채점 신고</p></div>
                     <button class="btn-mini" onclick="loadAdminPanel()">새로고침</button>
                 </div>
                 <div id="admin-body"><p class="muted">불러오는 중…</p></div>
@@ -582,7 +582,7 @@
     <div id="edit-profile-modal" class="modal-overlay hidden" onclick="closeEditProfile(event)">
         <div class="modal-card modal-sm" onclick="event.stopPropagation()">
             <div class="modal-head">
-                <h2>✏️ 정보수정</h2>
+                <h2><span class="ico" data-icon="edit"></span> 정보수정</h2>
                 <button class="btn-close" onclick="closeEditProfile()">×</button>
             </div>
             <div class="profile-avatar-row">
@@ -633,13 +633,13 @@
     <div id="profile-modal" class="modal-overlay hidden" onclick="closeProfile(event)">
         <div class="modal-card modal-wide" onclick="event.stopPropagation()">
             <div class="modal-head">
-                <h2>⚙️ 설정</h2>
+                <h2><span class="ico" data-icon="gear"></span> 설정</h2>
                 <button class="btn-close" onclick="closeProfile()">×</button>
             </div>
 
             <div class="settings-grid">
                 <section class="settings-block">
-                    <h3>🔑 비밀번호 변경</h3>
+                    <h3><span class="ico" data-icon="key"></span> 비밀번호 변경</h3>
                     <input type="password" class="settings-input" id="pw-current" placeholder="현재 비밀번호" autocomplete="current-password">
                     <input type="password" class="settings-input" id="pw-new" placeholder="새 비밀번호 (6~15자, 영문+숫자+특수문자)" autocomplete="new-password" oninput="checkPwChangeRules()">
                     <ul id="pw-change-rules" class="pw-rules" style="margin:8px 0">
@@ -654,12 +654,12 @@
 
                 <div class="settings-stack">
                     <section class="settings-block compact">
-                        <h3>🗂 데이터 관리</h3>
-                        <button class="btn-ghost danger" style="width:100%" onclick="resetStats()">📊 통계 초기화 (응시 기록·숙련도 삭제)</button>
+                        <h3><span class="ico" data-icon="folder"></span> 데이터 관리</h3>
+                        <button class="btn-ghost danger" style="width:100%" onclick="resetStats()"><span class="ico" data-icon="chart"></span> 통계 초기화 (응시 기록·숙련도 삭제)</button>
                         <p class="muted" style="margin-top:8px">단어장·시험지는 유지되고 점수·응시 기록만 초기화돼요.</p>
                     </section>
                     <section class="settings-block" id="ondevice-settings">
-                        <h3>🧠 온디바이스 AI</h3>
+                        <h3><span class="ico" data-icon="chip"></span> 온디바이스 AI</h3>
                         <div id="ondevice-settings-body"></div>
                     </section>
                 </div>
@@ -801,7 +801,7 @@
                 <label class="pdf-check"><input type="checkbox" id="pdf-header" checked onchange="pdfSet('header_fields', this.checked)"> 이름/날짜/점수 칸</label>
                 <label class="pdf-check"><input type="checkbox" id="pdf-school" checked onchange="pdfSet('show_school', this.checked)"> 상단 브랜드 문구</label>
 
-                <button class="btn-accent" style="width:100%; margin-top:14px" onclick="downloadCustomPdf()">📄 PDF 다운로드</button>
+                <button class="btn-accent" style="width:100%; margin-top:14px" onclick="downloadCustomPdf()"><span class="ico" data-icon="file"></span> PDF 다운로드</button>
             </div>
             <!-- 미리보기 -->
             <div class="pdf-preview-wrap">
@@ -821,7 +821,7 @@
     <div class="modal-card" style="max-width:420px; text-align:center">
         <div id="llm-loading-progress">
             <div class="llm-spinner"></div>
-            <h2 style="margin:10px 0 2px">🧠 온디바이스 AI 준비 중</h2>
+            <h2 style="margin:10px 0 2px"><span class="ico" data-icon="chip"></span> 온디바이스 AI 준비 중</h2>
             <p class="sub" style="margin:0">온디바이스 LLM을 불러오는 중입니다</p>
             <div class="progress-track" style="margin:16px 0 6px"><div id="llm-loading-bar" class="progress-bar"></div></div>
             <div class="llm-loading-status">
@@ -833,7 +833,7 @@
             <button class="btn-mini" style="margin-top:12px" onclick="cancelLLMLoad()">취소 (서버 채점으로 진행)</button>
         </div>
         <div id="llm-loading-error" class="hidden">
-            <div style="font-size:40px">⚠️</div>
+            <div style="font-size:40px"><span class="ico" data-icon="alert"></span></div>
             <h2 style="margin:10px 0 6px">온디바이스 AI 로딩 실패</h2>
             <p class="sub" id="llm-error-msg" style="margin:0 0 16px; line-height:1.5"></p>
             <button class="btn-primary" style="width:auto" onclick="document.getElementById('llm-loading').classList.add('hidden')">닫기</button>
@@ -844,7 +844,7 @@
 <!-- 시험 범위 설정 모달 -->
 <div id="range-modal" class="modal-overlay hidden" onclick="closeRangeModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:560px">
-        <div class="modal-head"><h2>🎯 시험 범위 설정</h2><button class="btn-close" onclick="closeRangeModal()">×</button></div>
+        <div class="modal-head"><h2><span class="ico" data-icon="target"></span> 시험 범위 설정</h2><button class="btn-close" onclick="closeRangeModal()">×</button></div>
         <p class="muted" style="margin:0 0 12px">범위를 입력해 단어를 선택하고, 체크박스로 중간중간 제외할 수 있어요.</p>
         <div class="range-controls">
             <input type="number" id="range-from" placeholder="시작" min="1" style="width:80px">
@@ -867,10 +867,10 @@
 </div>
 
 <!-- 채점 신고 플로팅 버튼 (리포트 화면에서만 표시) -->
-<button id="report-fab" class="report-fab hidden" onclick="openReportPicker()">🚩 채점 신고</button>
+<button id="report-fab" class="report-fab hidden" onclick="openReportPicker()"><span class="ico" data-icon="flag"></span> 채점 신고</button>
 <div id="report-picker-modal" class="modal-overlay hidden" onclick="closeReportPicker(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:520px">
-        <div class="modal-head"><h2>🚩 이 채점이 이상해요</h2><button class="btn-close" onclick="closeReportPicker()">×</button></div>
+        <div class="modal-head"><h2><span class="ico" data-icon="flag"></span> 이 채점이 이상해요</h2><button class="btn-close" onclick="closeReportPicker()">×</button></div>
         <div class="report-picker-top">
             <p class="muted" style="margin:0">채점이 잘못됐다고 생각하는 문항을 <b>여러 개</b> 고르고, 이유를 적어주세요.</p>
             <button id="report-all-btn" type="button" class="btn-ghost btn-sm" onclick="toggleReportAll()">전체 선택</button>
@@ -884,6 +884,6 @@
 <script type="module" src="ai_grade.js?v=11"></script> 
 <!-- ai.grade.js라는 자바스크립트 파일을 불러와 실행하라고 명령. ?v=1은 쿼리 문자열. 캐시본을 재사용해 수정이 반영되지 않는 것을 방지 -->
 <!-- module은 파일을 ES 모듈로 취급하라느 것. 그리하여 import/export 사용, scrict mode, 스코프 격리, HTML 다 읽은 뒤 실행 킴 -->
-<script src="app.js?v=58"></script>
+<script src="app.js?v=59"></script>
 </body>
 </html>

@@ -1180,6 +1180,10 @@ main > section:not(.hidden) { animation: viewIn .32s cubic-bezier(.2,.8,.2,1); }
    모노크롬 아이콘 · 미니 리스트 · AI 잠금 (아이콘 간소화)
    ============================================================ */
 /* SVG 아이콘은 currentColor 를 따라 흑/백으로 표시 */
+/* 인라인 선 아이콘 (버튼·제목·배지의 이모지 대체) */
+.ico { display: inline-flex; align-items: center; justify-content: center; width: 1.05em; height: 1.05em; vertical-align: -0.15em; flex: 0 0 auto; }
+.ico svg { width: 100%; height: 100%; }
+h2 .ico, h3 .ico { width: 1em; height: 1em; vertical-align: -0.1em; margin-right: 2px; opacity: .85; }
 .side-ico { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; }
 .side-ico svg { width: 19px; height: 19px; }
 .side-icon-btn svg { width: 20px; height: 20px; }
