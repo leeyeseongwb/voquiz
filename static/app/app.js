@@ -379,7 +379,7 @@ function renderExamScores(list) {
     }
     box.innerHTML = list.map(e => {
         const cls = e.best >= 80 ? "hi" : (e.best >= 50 ? "mid" : "lo");
-        return `<div class="es-row" onclick="openExam(${e.exam_id})">
+        return `<div class="es-row" onclick="openExamResults(${e.exam_id})" title="응시 리포트 보기">
             <div class="es-top"><span class="es-name">${esc(e.name)}</span>
                 <span class="es-best ${cls}">${e.best}%</span></div>
             <div class="es-track"><div class="es-bar ${cls}" style="width:${e.best}%"></div></div>
