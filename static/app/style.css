@@ -1727,7 +1727,7 @@ body.admin-only #chat-fab, body.admin-only #chat-pop { display: none !important;
 
 /* ===== 시험 응시 3단 레이아웃 (좌 번호네비 · 중앙 문제 · 우 타이머) ===== */
 .take-layout { display: grid; grid-template-columns: 210px minmax(0,1fr) 240px; gap: 24px; align-items: start; }
-.main-area:has(#view-take:not(.hidden)) { max-width: 1260px; }   /* 시험 화면은 더 넓게 */
+#view-take:has(#take-questions:not(.hidden)) { max-width: 1260px; }   /* 응시(3단) 때만 넓게 · 가운데 유지 */
 .take-center .q-text { font-size: 1.12rem; line-height: 1.65; margin-bottom: 4px; }
 .take-center .q-opt { padding: 13px 16px; font-size: 1.02rem; }
 .take-nav, .take-side { position: sticky; top: 14px; }

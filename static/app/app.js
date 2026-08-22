@@ -953,9 +953,6 @@ async function loadWordbooks() {
                     <span class="badge">${wb.word_count} 단어</span>
                     <span class="badge gray">시험지 ${wb.exam_count}개</span>
                 </div>
-                <div class="ic-actions">
-                    <button class="btn-mini" onclick="event.stopPropagation(); editWordbook(${wb.id}, ${esc(jsStr(wb.name))}, ${esc(jsStr(wb.description || ''))})">✏️ 이름·설명 수정</button>
-                </div>
             </div>`).join("");
     } catch (e) { el.innerHTML = `<div class="empty-state">불러오기 실패: ${e.message}</div>`; }
 }
@@ -979,7 +976,6 @@ async function loadExams() {
                     ${ex.attempt_count ? `<span class="badge green">최고 ${ex.best_score}%</span>` : ``}
                 </div>
                 <div class="ic-actions">
-                    <button class="btn-mini" onclick="event.stopPropagation(); editExamName(${ex.id}, ${esc(jsStr(ex.name))})">✏️ 이름</button>
                     <button class="btn-mini" onclick="event.stopPropagation(); previewExam(${ex.id})">👁 문제 보기</button>
                     <button class="btn-mini" onclick="event.stopPropagation(); quickExamPdf(${ex.id})">📄 PDF</button>
                     ${ex.attempt_count ? `<button class="btn-mini" onclick="event.stopPropagation(); openExamResults(${ex.id})">📊 결과 (${ex.attempt_count})</button>` : ``}
@@ -1000,9 +996,19 @@ async function editExamName(id, name) {
     if (!newName) return toast("이름을 입력해주세요.", "error");
     try {
         await api(`/api/exams/${id}`, { method: "PATCH", body: { name: newName } });
+        if (takeState.exam && takeState.exam.id === id) {   // 시작 화면 제목도 즉시 갱신
+            takeState.exam.name = newName;
+            const tn = document.getElementById("take-name"); if (tn) tn.textContent = newName;
+        }
         toast("시험지 이름을 수정했습니다.", "success");
         loadExams();
     } catch (e) { toast(e.message, "error"); }
+}
+
+// 단어장 상세 화면에서 수정
+function editCurrentWordbook() {
+    if (!currentWordbook) return;
+    editWordbook(currentWordbook.id, currentWordbook.name, currentWordbook.description);
 }
 
 // 단어장 이름·설명 수정
@@ -1016,6 +1022,10 @@ async function editWordbook(id, name, desc) {
         await api(`/api/wordbooks/${id}`, { method: "PATCH", body: { name: newName, description: newDesc } });
         toast("단어장을 수정했습니다.", "success");
         loadWordbooks();
+        // 상세 화면이 열려 있으면 즉시 갱신
+        if (!document.getElementById("view-wordbook").classList.contains("hidden") && currentWordbook && currentWordbook.id === id) {
+            openWordbook(id);
+        }
     } catch (e) { toast(e.message, "error"); }
 }
 
