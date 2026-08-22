@@ -472,6 +472,27 @@ def delete_wordbook(wb_id: int, user=Depends(current_user)):
     return {"status": "success", "deleted_exams": len(exams)}
 
 
+class WordbookEditBody(BaseModel):
+    name: str = None
+    description: str = None
+
+
+@app.patch("/api/wordbooks/{wb_id}")
+def edit_wordbook(wb_id: int, body: WordbookEditBody, user=Depends(current_user)):
+    """단어장 이름/설명 수정."""
+    wb = db.query_one("SELECT id FROM wordbooks WHERE id=? AND user_id=?", (wb_id, user["id"]))
+    if not wb:
+        raise HTTPException(404, "단어장을 찾을 수 없습니다.")
+    if body.name is not None:
+        name = body.name.strip()
+        if not name:
+            raise HTTPException(400, "이름을 입력해주세요.")
+        db.execute("UPDATE wordbooks SET name=? WHERE id=?", (name, wb_id), commit=True)
+    if body.description is not None:
+        db.execute("UPDATE wordbooks SET description=? WHERE id=?", (body.description.strip(), wb_id), commit=True)
+    return {"status": "success"}
+
+
 @app.get("/api/wordbooks/{wb_id}/exam-count")
 def wordbook_exam_count(wb_id: int, user=Depends(current_user)):
     """단어장 삭제 확인용: 함께 삭제될 시험지 개수."""
@@ -580,6 +601,23 @@ def delete_exam(exam_id: int, user=Depends(current_user)):
     if not exam:
         raise HTTPException(404, "시험지를 찾을 수 없습니다.")
     db.execute("DELETE FROM exams WHERE id=?", (exam_id,), commit=True)
+    return {"status": "success"}
+
+
+class ExamEditBody(BaseModel):
+    name: str
+
+
+@app.patch("/api/exams/{exam_id}")
+def edit_exam(exam_id: int, body: ExamEditBody, user=Depends(current_user)):
+    """시험지 이름 수정."""
+    ex = db.query_one("SELECT id FROM exams WHERE id=? AND user_id=?", (exam_id, user["id"]))
+    if not ex:
+        raise HTTPException(404, "시험지를 찾을 수 없습니다.")
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(400, "이름을 입력해주세요.")
+    db.execute("UPDATE exams SET name=? WHERE id=?", (name, exam_id), commit=True)
     return {"status": "success"}
 
 

@@ -953,6 +953,9 @@ async function loadWordbooks() {
                     <span class="badge">${wb.word_count} 단어</span>
                     <span class="badge gray">시험지 ${wb.exam_count}개</span>
                 </div>
+                <div class="ic-actions">
+                    <button class="btn-mini" onclick="event.stopPropagation(); editWordbook(${wb.id}, ${esc(jsStr(wb.name))}, ${esc(jsStr(wb.description || ''))})">✏️ 이름·설명 수정</button>
+                </div>
             </div>`).join("");
     } catch (e) { el.innerHTML = `<div class="empty-state">불러오기 실패: ${e.message}</div>`; }
 }
@@ -976,6 +979,7 @@ async function loadExams() {
                     ${ex.attempt_count ? `<span class="badge green">최고 ${ex.best_score}%</span>` : ``}
                 </div>
                 <div class="ic-actions">
+                    <button class="btn-mini" onclick="event.stopPropagation(); editExamName(${ex.id}, ${esc(jsStr(ex.name))})">✏️ 이름</button>
                     <button class="btn-mini" onclick="event.stopPropagation(); previewExam(${ex.id})">👁 문제 보기</button>
                     <button class="btn-mini" onclick="event.stopPropagation(); quickExamPdf(${ex.id})">📄 PDF</button>
                     ${ex.attempt_count ? `<button class="btn-mini" onclick="event.stopPropagation(); openExamResults(${ex.id})">📊 결과 (${ex.attempt_count})</button>` : ``}
@@ -987,6 +991,32 @@ async function loadExams() {
 // 시험지 카드에서 PDF 커스텀 모달 열기 (풀지 않아도)
 async function quickExamPdf(id) {
     await openPdfModal(id);
+}
+
+// 시험지 이름 수정
+async function editExamName(id, name) {
+    const newName = await appPrompt("새 이름을 입력하세요.", name, { title: "시험지 이름 수정", placeholder: "시험지 이름" });
+    if (newName === null) return;
+    if (!newName) return toast("이름을 입력해주세요.", "error");
+    try {
+        await api(`/api/exams/${id}`, { method: "PATCH", body: { name: newName } });
+        toast("시험지 이름을 수정했습니다.", "success");
+        loadExams();
+    } catch (e) { toast(e.message, "error"); }
+}
+
+// 단어장 이름·설명 수정
+async function editWordbook(id, name, desc) {
+    const newName = await appPrompt("단어장 이름", name, { title: "단어장 수정", placeholder: "단어장 이름" });
+    if (newName === null) return;
+    if (!newName) return toast("이름을 입력해주세요.", "error");
+    const newDesc = await appPrompt("단어장 설명 (비워둬도 됩니다)", desc || "", { title: "단어장 수정", placeholder: "설명" });
+    if (newDesc === null) return;
+    try {
+        await api(`/api/wordbooks/${id}`, { method: "PATCH", body: { name: newName, description: newDesc } });
+        toast("단어장을 수정했습니다.", "success");
+        loadWordbooks();
+    } catch (e) { toast(e.message, "error"); }
 }
 
 // 시험지 문제 미리보기 (정답 표시)
@@ -2445,34 +2475,37 @@ function checkPwRules() {
 // 에러/안내용 팝업 토스트 (기존 alert 대체)
 // ===== 앱 내 확인/알림 팝업 (브라우저 기본 alert/confirm 대체) =====
 let _appModalCb = null;
+let _appModalPrompt = false;
 function _appModalResolve(v) {
+    const inp = document.getElementById("app-modal-input");
+    let result = v;
+    if (_appModalPrompt) result = v ? inp.value.trim() : null;   // 프롬프트: 확인→입력값, 취소→null
     document.getElementById("app-modal").classList.add("hidden");
+    inp.style.display = "none"; _appModalPrompt = false;
     const cb = _appModalCb; _appModalCb = null;
-    if (cb) cb(v);
+    if (cb) cb(result);
 }
-function appConfirm(message, { title = "", okText = "확인", cancelText = "취소" } = {}) {
+function _appModalOpen({ title, message, okText, cancelText, prompt, promptValue, placeholder }) {
     return new Promise(resolve => {
-        _appModalCb = resolve;
+        _appModalCb = resolve; _appModalPrompt = !!prompt;
         const t = document.getElementById("app-modal-title");
-        t.textContent = title; t.style.display = title ? "" : "none";
-        document.getElementById("app-modal-msg").textContent = message;
-        document.getElementById("app-modal-ok").textContent = okText;
+        t.textContent = title || ""; t.style.display = title ? "" : "none";
+        document.getElementById("app-modal-msg").textContent = message || "";
+        const inp = document.getElementById("app-modal-input");
+        if (prompt) {
+            inp.style.display = ""; inp.value = promptValue || ""; inp.placeholder = placeholder || "";
+            setTimeout(() => { inp.focus(); inp.select(); }, 50);
+        } else inp.style.display = "none";
+        document.getElementById("app-modal-ok").textContent = okText || "확인";
         const cancel = document.getElementById("app-modal-cancel");
-        cancel.textContent = cancelText; cancel.style.display = "";
+        cancel.textContent = cancelText || "취소";
+        cancel.style.display = (cancelText === null) ? "none" : "";
         document.getElementById("app-modal").classList.remove("hidden");
     });
 }
-function appAlert(message, { title = "", okText = "확인" } = {}) {
-    return new Promise(resolve => {
-        _appModalCb = resolve;
-        const t = document.getElementById("app-modal-title");
-        t.textContent = title; t.style.display = title ? "" : "none";
-        document.getElementById("app-modal-msg").textContent = message;
-        document.getElementById("app-modal-ok").textContent = okText;
-        document.getElementById("app-modal-cancel").style.display = "none";
-        document.getElementById("app-modal").classList.remove("hidden");
-    });
-}
+function appConfirm(message, o = {}) { return _appModalOpen({ message, title: o.title, okText: o.okText, cancelText: o.cancelText }); }
+function appAlert(message, o = {}) { return _appModalOpen({ message, title: o.title, okText: o.okText, cancelText: null }); }
+function appPrompt(message, promptValue = "", o = {}) { return _appModalOpen({ message, title: o.title, okText: o.okText || "저장", promptValue, placeholder: o.placeholder, prompt: true }); }
 
 function toastErr(msg) { toast(msg, "error"); }
 

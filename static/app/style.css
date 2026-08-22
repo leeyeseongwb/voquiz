@@ -1790,6 +1790,7 @@ body.admin-only #chat-fab, body.admin-only #chat-pop { display: none !important;
 .app-modal-card { max-width: 400px; text-align: center; padding: 28px 26px 22px; }
 .app-modal-title { font-size: 1.15rem; font-weight: 800; color: var(--text); margin-bottom: 10px; }
 .app-modal-msg { font-size: .95rem; color: var(--muted); line-height: 1.6; white-space: pre-line; margin-bottom: 22px; }
+.app-modal-input { width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--card-2); color: var(--text); font-size: .95rem; margin: -6px 0 20px; }
 .app-modal-btns { display: flex; gap: 10px; }
 .app-modal-btns button { flex: 1; width: auto; }
 .chat-pop .chat-messages { flex: 1; min-height: 0; max-height: none; padding: 14px; }
