@@ -68,7 +68,8 @@ function render(d) {
 
     const recent = d.recent.length ? d.recent.map(r => {
         const cls = r.score >= 80 ? "hi" : (r.score >= 50 ? "mid" : "lo");
-        return `<div class="recent-item">
+        const click = r.id ? ` recent-clickable" onclick="openAttempt(${r.id})" title="문항별 결과 보기"` : `"`;
+        return `<div class="recent-item${click}>
             <div style="min-width:0"><div class="ri-name">${esc(r.exam_name)}</div>
             <div class="ri-date">${fmtDate(r.created_at)} · ${r.correct}/${r.total}</div></div>
             <span class="ri-score ${cls}">${r.score}%</span></div>`;
@@ -93,9 +94,48 @@ function render(d) {
         </div>`;
 }
 
+// ---- 응시 상세 모달 (문항별 내 답/정오/정답/피드백) ----
+let _reportToken = null;
+
+async function openAttempt(attemptId) {
+    if (!_reportToken) return;
+    const modal = document.getElementById("attempt-modal");
+    const body = document.getElementById("attempt-modal-body");
+    body.innerHTML = `<div class="report-loading">불러오는 중…</div>`;
+    modal.classList.remove("hidden");
+    try {
+        const res = await fetch(
+            `/api/public/report/${encodeURIComponent(_reportToken)}/attempt/${attemptId}`);
+        if (!res.ok) throw new Error();
+        const a = await res.json();
+        const detail = (a.results || []).map(r => `
+            <div class="rep-q ${r.correct ? "" : "wrong"}">
+                <div class="rq-title">Q${r.idx}. ${esc(r.question)}</div>
+                <div class="rq-you ${r.correct ? "ok" : "no"}">내 답: ${esc(r.user_ans)} ${r.correct ? "✅" : "❌"}</div>
+                ${r.correct ? "" : `<div class="rq-ans">정답: ${esc(r.correct_ans)}</div>`}
+                ${r.feedback ? `<div class="rq-fb">💡 ${esc(r.feedback)}</div>` : ""}
+            </div>`).join("");
+        body.innerHTML = `
+            <div class="am-head">
+                <div><h2>📊 ${esc(a.exam_name)}</h2>
+                <p class="muted">${fmtDate(a.created_at)} · ${a.correct}/${a.total} · ${a.score}%</p></div>
+            </div>
+            <div class="am-detail">${detail || `<div class="recent-empty">문항 정보가 없어요.</div>`}</div>`;
+    } catch (e) {
+        body.innerHTML = `<div class="report-loading">결과를 불러오지 못했어요.</div>`;
+    }
+}
+function closeAttempt(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById("attempt-modal").classList.add("hidden");
+}
+window.openAttempt = openAttempt;
+window.closeAttempt = closeAttempt;
+
 async function load() {
     initTheme();
     const token = new URLSearchParams(location.search).get("t");
+    _reportToken = token;
     if (!token) {
         document.getElementById("report-body").innerHTML =
             `<div class="report-loading">잘못된 링크입니다.</div>`;

@@ -710,7 +710,7 @@ def _build_report(uid: int):
     trend = list(reversed(db.query_all(
         "SELECT score, created_at FROM attempts WHERE user_id=? ORDER BY created_at DESC LIMIT 20", (uid,))))
     recent = db.query_all(
-        "SELECT a.score, a.correct, a.total, a.created_at, e.name AS exam_name "
+        "SELECT a.id, a.score, a.correct, a.total, a.created_at, e.name AS exam_name "
         "FROM attempts a JOIN exams e ON e.id=a.exam_id WHERE a.user_id=? "
         "ORDER BY a.created_at DESC LIMIT 8", (uid,))
     return {
@@ -758,6 +758,25 @@ def public_report(token: str):
     if not data:
         raise HTTPException(404, "리포트를 찾을 수 없습니다.")
     return data
+
+
+@app.get("/api/public/report/{token}/attempt/{attempt_id}")
+def public_report_attempt(token: str, attempt_id: int):
+    """공유 토큰으로 특정 응시의 문항별 결과 보기 (로그인 불필요, 해당 토큰 소유자의 응시만)."""
+    row = db.query_one("SELECT user_id FROM report_shares WHERE token=?", (token,))
+    if not row:
+        raise HTTPException(404, "리포트를 찾을 수 없습니다.")
+    att = db.query_one("SELECT * FROM attempts WHERE id=? AND user_id=?",
+                       (attempt_id, row["user_id"]))
+    if not att:
+        raise HTTPException(404, "응시 기록을 찾을 수 없습니다.")
+    exam = db.query_one("SELECT name FROM exams WHERE id=?", (att["exam_id"],))
+    return {
+        "exam_name": exam["name"] if exam else "시험",
+        "score": att["score"], "correct": att["correct"], "total": att["total"],
+        "created_at": att["created_at"],
+        "results": json.loads(att["results"]),
+    }
 
 
 @app.get("/api/exams/{exam_id}/attempts")

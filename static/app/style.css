@@ -338,6 +338,12 @@ input::placeholder { color: var(--muted); }
 .rep-q .rq-you.no { color: var(--red); }
 .rep-q .rq-ans { font-size: .9rem; color: var(--primary); }
 .rep-q .rq-fb { font-size: .82rem; color: var(--muted); margin-top: 4px; }
+/* 공유 리포트: 응시 상세 모달 */
+#attempt-modal .modal-card { position: relative; }
+.am-head { margin: 0 30px 14px 0; }
+.am-head h2 { margin: 0; }
+.am-head .muted { margin: 4px 0 0; }
+.am-detail { text-align: left; max-height: 60vh; overflow-y: auto; }
 .rep-history { text-align: left; margin-top: 30px; }
 .hist-row { display: flex; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: .88rem; }
 .hist-row .h-score { font-weight: 700; color: var(--primary); }
