@@ -17,6 +17,7 @@ import json
 import base64
 import re
 import uuid
+import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
@@ -144,7 +145,7 @@ def _gemini_extract_image(image_path, language="en", meaning_lang="ko"):
 
 def _process_page(page_image, page_num, language="en", meaning_lang="ko"):
     """PDF 페이지 이미지를 임시 파일로 저장 후 추출, 페이지 번호 태깅."""
-    tmp = f"uploads/_tmp_{uuid.uuid4().hex}.jpg"
+    tmp = os.path.join(tempfile.gettempdir(), f"voquiz_tmp_{uuid.uuid4().hex}.jpg")
     try:
         page_image.save(tmp, "JPEG")
         data = _gemini_extract_image(tmp, language, meaning_lang) or []
