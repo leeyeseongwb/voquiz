@@ -119,9 +119,9 @@ function updateModeStatus() {
     el.removeAttribute("title"); // 네이티브 툴팁 대신 커스텀 인앱 팝업 사용
     if (isOnDeviceReady()) {
         el.className = "mode-status ondevice";
-        el.innerHTML = `<span class="ms-label">🧠 온디바이스 AI</span>
+        el.innerHTML = `<span class="ms-label"><span class="ico">${ICONS.chip}</span> 온디바이스 AI</span>
             <div class="mode-tip">
-                <b>🧠 온디바이스 AI</b>
+                <b><span class="ico">${ICONS.chip}</span> 온디바이스 AI</b>
                 <ul><li>답안이 이 기기 밖으로 나가지 않아요 (비공개)</li>
                     <li>무료이고 사용 제한이 없어요</li></ul>
             </div>`;
@@ -132,9 +132,9 @@ function updateModeStatus() {
         const rec = navigator.gpu
             ? "온디바이스 AI를 <b>다운로드</b>하면 무제한·비공개로 채점돼요 (설정 또는 상단 배너)"
             : "이 기기는 온디바이스 AI(WebGPU)를 지원하지 않아요";
-        el.innerHTML = `<span class="ms-label">☁️ Gemini <span class="ms-warn">· 사용량 제한</span></span>
+        el.innerHTML = `<span class="ms-label"><span class="ico">${ICONS.cloud}</span> Gemini <span class="ms-warn">· 사용량 제한</span></span>
             <div class="mode-tip">
-                <b>☁️ Gemini (서버 채점)</b>
+                <b><span class="ico">${ICONS.cloud}</span> Gemini (서버 채점)</b>
                 <ul><li>${limTxt} — 유료 API 비용 때문</li>
                     <li>${rec}</li></ul>
             </div>`;
@@ -145,11 +145,11 @@ function renderOnDeviceSettings() {
     const box = document.getElementById("ondevice-settings-body");
     if (!box) return;
     if (isOnDeviceReady()) {
-        box.innerHTML = `<button class="btn-ghost danger" style="width:100%" onclick="clearOnDeviceAI()">🗑 온디바이스 AI 모델 캐시 삭제 (약 1.4GB)</button>
+        box.innerHTML = `<button class="btn-ghost danger" style="width:100%" onclick="clearOnDeviceAI()"><span class="ico">${ICONS.trash}</span> 온디바이스 AI 모델 캐시 삭제 (약 1.4GB)</button>
             <p class="muted" style="margin-top:8px">브라우저에 저장된 온디바이스 AI 모델을 삭제해요. 저장 공간을 비우거나 온디바이스 채점을 끄고 싶을 때 사용하세요. 삭제 후에는 서버 Gemini로 채점돼요 (하루 한도 있음).</p>
             <p style="margin-top:6px; font-size:12px; color:var(--red)">⚠️ 자주 지웠다 다시 받으면 모델 서버가 일시적으로 요청을 제한(429)할 수 있어요. 꼭 필요할 때만 지우세요.</p>`;
     } else if (navigator.gpu) {
-        box.innerHTML = `<button class="btn-primary" style="width:100%" onclick="downloadLLM()">⬇️ 온디바이스 AI 다운로드 (약 1.4GB)</button>
+        box.innerHTML = `<button class="btn-primary" style="width:100%" onclick="downloadLLM()"><span class="ico">${ICONS.download}</span> 온디바이스 AI 다운로드 (약 1.4GB)</button>
             <p class="muted" style="margin-top:8px">지금 받아두면 주관식 답안을 이 기기 안에서 채점해요 (무료·무제한·비공개). 처음 한 번만 내려받으면 돼요.</p>`;
     } else {
         box.innerHTML = `<p class="muted">이 기기는 온디바이스 AI(WebGPU)를 지원하지 않아 서버 Gemini로 채점돼요. 최신 Chrome/Edge 등 지원 브라우저에서 사용할 수 있어요.</p>`;
@@ -561,7 +561,7 @@ function startGame(type = "match", words = null) {
     });
     gameState = { ...gameState, tiles: shuffle(tiles), first: null, matched: 0, total: picked.length,
                   seconds: 0, timer: null, lock: false };
-    document.getElementById("game-title").textContent = "🔗 짝 맞추기";
+    document.getElementById("game-title").innerHTML = `<span class="ico">${ICONS.link}</span> 짝 맞추기`;
     document.getElementById("game-sub").textContent = def ? "단어와 영영풀이를 짝지어 보세요" : "단어와 뜻을 짝지어 보세요";
     document.getElementById("game-done").classList.add("hidden");
     renderGame();
@@ -945,7 +945,7 @@ async function loadWordbooks() {
         }
         el.innerHTML = wordbooks.map(wb => `
             <div class="item-card" onclick="openWordbook(${wb.id})">
-                <button class="card-del" title="삭제" onclick="event.stopPropagation(); deleteWordbookById(${wb.id}, ${esc(jsStr(wb.name))})">🗑</button>
+                <button class="card-del" title="삭제" onclick="event.stopPropagation(); deleteWordbookById(${wb.id}, ${esc(jsStr(wb.name))})"><span class="ico">${ICONS.trash}</span></button>
                 <div class="ic-title">${esc(wb.name)}</div>
                 <div class="ic-desc">${esc(wb.description || "설명 없음")}</div>
                 <div class="ic-meta">
@@ -1564,7 +1564,7 @@ async function loadTakeHistory(examId) {
     try {
         const { attempts } = await api(`/api/exams/${examId}/attempts`);
         if (!attempts.length) return;
-        el.innerHTML = `<h3>📜 지난 응시 기록 <span class="hint-text">(클릭하면 틀린 문제까지 바로 확인)</span></h3>` +
+        el.innerHTML = `<h3><span class="ico">${ICONS.clock}</span> 지난 응시 기록 <span class="hint-text">(클릭하면 틀린 문제까지 바로 확인)</span></h3>` +
             attempts.map(a => {
                 const cls = a.score >= 80 ? "hi" : (a.score >= 50 ? "mid" : "lo");
                 return `<div class="hist-row" onclick="viewAttempt(${a.id})" style="cursor:pointer">
@@ -1739,7 +1739,10 @@ async function submitExam() { // 자동으로 전역이 됨.
 // 결과 리포트
 // ============================================================
 async function renderReport(result, exam) {
-    document.getElementById("rep-title").textContent = `📊 ${exam.name} 결과`;
+    document.getElementById("rep-title").innerHTML = `<span class="ico">${ICONS.chart}</span> ${esc(exam.name)} 결과`;
+    // 언제 본 시험인지 (헤더 위, 작게) — 지난 응시는 그 날짜, 방금 푼 건 지금
+    const when = fmtDate(result.created_at || new Date().toISOString());
+    document.getElementById("rep-date").textContent = `${when}에 응시한 결과예요`;
     const circle = document.getElementById("score-circle");
     circle.style.setProperty("--pct", result.score + "%");
     circle.setAttribute("data-score", result.score + "%");
@@ -1753,7 +1756,7 @@ async function renderReport(result, exam) {
             <div class="rq-title">Q${r.idx}. ${esc(r.question)}</div>
             <div class="rq-you ${r.correct ? "ok" : "no"}">내 답: ${esc(r.user_ans)} ${r.correct ? "✅" : "❌"}</div>
             ${r.correct ? "" : `<div class="rq-ans">정답: ${esc(r.correct_ans)}</div>`}
-            ${r.feedback ? `<div class="rq-fb">💡 ${esc(r.feedback)}</div>` : ""}
+            ${r.feedback ? `<div class="rq-fb"><span class="ico">${ICONS.bulb}</span> ${esc(r.feedback)}</div>` : ""}
         </div>`).join("");
 
     await loadHistory(exam.id);
@@ -1825,7 +1828,7 @@ async function loadHistory(examId) {
         const { attempts } = await api(`/api/exams/${examId}/attempts`);
         const el = document.getElementById("rep-history");
         if (attempts.length <= 1) { el.innerHTML = ""; return; }
-        el.innerHTML = `<h3>📜 응시 기록 (${attempts.length}회)</h3>` + attempts.map(a => `
+        el.innerHTML = `<h3><span class="ico">${ICONS.clock}</span> 응시 기록 (${attempts.length}회)</h3>` + attempts.map(a => `
             <div class="hist-row" onclick="viewAttempt(${a.id})" style="cursor:pointer">
                 <span>${fmtDate(a.created_at)}</span>
                 <span><span class="h-score">${a.score}%</span> · ${a.correct}/${a.total} · ${fmtTime(a.time_taken)}</span>
@@ -1837,7 +1840,7 @@ async function viewAttempt(attemptId) {
     try {
         const { attempt } = await api(`/api/attempts/${attemptId}`);
         reportState.attemptId = attemptId;
-        renderReport({ score: attempt.score, correct: attempt.correct, total: attempt.total, results: attempt.results }, takeState.exam || { id: attempt.exam_id, name: "시험" });
+        renderReport({ score: attempt.score, correct: attempt.correct, total: attempt.total, results: attempt.results, created_at: attempt.created_at }, takeState.exam || { id: attempt.exam_id, name: "시험" });
     } catch (e) { toastErr(e.message); }
 }
 
@@ -2033,6 +2036,10 @@ const ICONS = {
     type: _svg('<path d="M4 7V5h16v2"/><path d="M9 19h6"/><path d="M12 5v14"/>'),
     upload: _svg('<path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M20 17v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2"/>'),
     alert: _svg('<path d="M12 3 2 20h20z"/><path d="M12 10v5M12 18h.01"/>'),
+    clock: _svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+    cloud: _svg('<path d="M6 18a4 4 0 0 1 0-8 5.5 5.5 0 0 1 10.6-1.3A4.2 4.2 0 0 1 18 18z"/>'),
+    download: _svg('<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>'),
+    bulb: _svg('<path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.7 1 1.2 1 2.5h6c0-1.3.3-1.8 1-2.5A6 6 0 0 0 12 3z"/>'),
 };
 function applyIcons(root = document) {
     root.querySelectorAll("[data-icon]").forEach(el => {
